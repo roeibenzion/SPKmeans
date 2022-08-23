@@ -5,9 +5,10 @@
 #include <string.h>
 
 
-void navigator(char* goal, double *vect, int N, int d)
+void navigator(char* goal, double *vect, int N, int d, int K)
 {
-    double **W, **D, **Lnorm;
+    int i;
+    double **W, **D, **Lnorm, **temp, **V, *eigenValues, **U, **T;
     char* spk, *wam, *ddg, *lnorm, *jacobi;
 
     spk = "spk";
@@ -19,12 +20,14 @@ void navigator(char* goal, double *vect, int N, int d)
     if(strcmp(goal,wam))
     {
         W = wamF(vect, N, D);
+        //return to python
     }
 
     else if(strcmp(goal,ddg))
     {
         W = wamF(vect, N, D);
         D = ddgF(W, N);
+        //return to python
     }
 
     else if(strcmp(goal,lnorm))
@@ -39,14 +42,29 @@ void navigator(char* goal, double *vect, int N, int d)
         W = wamF(vect, N, D);
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
-        //whats the best way to do that?
+        temp = JacobiF(Lnorm, N);
+        //return to python
+        
     }
     else if(strcmp(goal, spk))
     {
         W = wamF(vect, N, D);
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
-        //whats the best way to do that?
+        temp = JacobiF(Lnorm, N);
+        copyRows(eigenValues, temp[0], N);
+        for(i = 0; i < N; i++)
+        {
+            copyRows(V[i], temp[i+1], N);
+        }
+        V = sortMatrixColumns(V, N, eigenValues);
+        if(K == -1)
+            {
+                K = eigenGap(eigenValues, N);
+            }
+        U = obtainLargestK(V, N, K);
+        T = formTfromU(U, N, K);
+        //connect to KMeans
     }
     else
     {
@@ -111,7 +129,7 @@ double** JacobiF(double** A, int N)
     int i,j, iMax, jMax, countIter, firstIter;
     double theta, t, c, s, maxVal, offSquareA;
     maxVal = 0.0;
-    double ** P, **V;
+    double ** P, **V, **eigenValuesVectors;
 
     countIter = 0;
     firstIter = 0;
@@ -157,10 +175,19 @@ double** JacobiF(double** A, int N)
             break;
         }
     }
-    return V;
+    eigenValuesVectors = getMatrix(N+1,N);
+    for(i = 0; i < N; i++)
+    {
+        eigenValuesVectors[0][i] = A[i][i];
+    }
+    for(i = 1; i < N+1; i++)
+    {
+        copyRows(eigenValuesVectors[i], V[i-1], N);
+    }
+    return eigenValuesVectors;
 }
 
-int eigenGap(double** V, int N)
+int eigenGap(double* eigenValues, int N)
 {
     double deltaI, temp;
     int i, iter, maxIndex;
@@ -171,11 +198,11 @@ int eigenGap(double** V, int N)
         return 1;
     }
     i = 1;
-    deltaI = abs(V[i][i] - V[i+1][i+1]);
+    deltaI = abs(eigenValues[i] - eigenValues[i+1]);
     maxIndex = 1;
     for(i = 2; i < iter; i++)
     {
-        temp = abs(V[i][i] - V[i+1][i+1]);
+        temp = abs(eigenValues[i] - eigenValues[i+1]);
         if(deltaI < temp)
         {
             maxIndex = i;
@@ -185,25 +212,42 @@ int eigenGap(double** V, int N)
     return maxIndex;
 }
 
-double** sortMatrixColumns(double** V, int N, double** A)
+double** sortMatrixColumns(double** V, int N, double* A)
 {
-    int i, j;
+    int i, j, row;
     double* copy, **newV;
 
     copy = getVector(N);
     newV = getMatrix(N, N);
     for(i = 0; i < N; i++)
     {
-        copy[i] = A[i][i];
+        copy[i] = A[i];
     }
     qsort(copy,N,sizeof(double),compare);
 
     for(i = 0; i < N; i++)
     {
-        /////here
+        row = searchIndex(copy, N, A[i]);
+        copyRows(newV[i], V[row], N);
     }
+    return newV;
 }
 
+double** obtainLargestK(double **V, int N, int K)
+{
+    int i, j;
+    double** U;
+
+    U = getMatrix(N, K);
+    for(i = 0; i < K; i++)
+    {
+       for(j = 0; j < N; j++)
+       {
+        U[i][j] = V[i][j];
+       } 
+    }
+    return U;
+}
 double** formTfromU(double** U, int N, int K)
 {
     int i, j;
@@ -426,4 +470,26 @@ int compare( const void* a, const void* b)
      if ( double_a == double_b ) return 0;
      else if ( double_a < double_b ) return -1;
      else return 1;
+}
+
+int searchIndex(int* arr, int N, int val)
+{
+    int i;
+    for(i = 0; i<N; i++)
+    {
+        if(arr[i] == val)
+            {
+                return i;
+            }
+    }
+    return -1;
+}
+
+void copyRows(double* dst, double* src, int N)
+{
+    int i;
+    for(i = 0; i < N ; i++)
+    {
+        dst[i] = src[i];
+    }
 }
