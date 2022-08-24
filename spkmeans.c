@@ -5,7 +5,7 @@
 #include <string.h>
 
 
-void navigator(char* goal, double *vect, int N, int d, int K)
+void navigator(char* goal, double *vect, double** mat, int N, int d, int K)
 {
     int i;
     double **W, **D, **Lnorm, **temp, **V, *eigenValues, **U, **T;
@@ -39,10 +39,7 @@ void navigator(char* goal, double *vect, int N, int d, int K)
 
     else if(strcmp(goal,jacobi))
     {
-        W = wamF(vect, N, D);
-        D = ddgF(W, N);
-        Lnorm = lnormF(W, D, N);
-        temp = JacobiF(Lnorm, N);
+        temp = JacobiF(mat, N);
         //return to python
         
     }
@@ -64,7 +61,7 @@ void navigator(char* goal, double *vect, int N, int d, int K)
             }
         U = obtainLargestK(V, N, K);
         T = formTfromU(U, N, K);
-        //connect to KMeans
+        //return to python and connect to KMEANS from HW2.
     }
     else
     {
@@ -86,7 +83,7 @@ double ** wamF(double **vect, int N, int d)
             }
             else
             {
-                c = sumVectors(vect[i], vect[j], d);
+                c = sumVectorsDiff(vect[i], vect[j], d);
                 W[i][j] = exp(-(c/2));
             }
         }
@@ -128,11 +125,11 @@ double** JacobiF(double** A, int N)
 {
     int i,j, iMax, jMax, countIter, firstIter;
     double theta, t, c, s, maxVal, offSquareA;
-    maxVal = 0.0;
     double ** P, **V, **eigenValuesVectors;
 
+    maxVal = 0.0;
     countIter = 0;
-    firstIter = 0;
+    firstIter = 1;
     P = getMatrix(N, N);
     for(i = 0; i < N; i++)
         {
@@ -142,26 +139,30 @@ double** JacobiF(double** A, int N)
     while(countIter < 100)
     {
         countIter++;
+        if(checkDiag(A, N) == 1)
+            {
+                break;
+            }
         for(i = 0; i < N; i++)
         {
             for(j = 0; j < N; j++)
             {
-                maxVal = getMax(maxVal, A[i][j]); 
+                maxVal = getMax(maxVal, abs(A[i][j])); 
                 iMax = i;
                 jMax = j;
             }
         }
-        theta = (A[jMax][jMax] - A[iMax][iMax]) / 2*(A[iMax][jMax]);
+        theta = (A[jMax][jMax] - A[iMax][iMax]) / (2*(A[iMax][jMax]));
         t = findT(theta);
-        c = 1/sqrt(pow(t,2) + 1);
+        c = 1/(sqrt(pow(t,2) + 1));
         s = t*c;
         P[iMax][jMax] = s;
         P[jMax][iMax] = -s;
-        P[i][i] = c;
-        P[j][j] = c;
-        if(firstIter == 0)
+        P[iMax][iMax] = c;
+        P[jMax][jMax] = c;
+        if(firstIter == 1)
         {
-            firstIter = 1;
+            firstIter = 0;
             V = P;
         }
         else
@@ -277,6 +278,7 @@ double findT(double theta)
         sign = 1;
     }
     base = abs(theta) + sqrt((pow(theta,2)) + 1);
+    t = sign / base;
     return t;
 }
 
@@ -284,13 +286,16 @@ double** getATag(double **A,int N, double c, double s, int i, int j)
 {
     int r;
     double **ATag;
+
     ATag = getMatrix(N,N);
     for(r = 0; r < N; r++)
     {
         if(r != j && r != i)
         {
             ATag[r][i] = c*A[r][i] - s*A[r][j];
+            ATag[i][r] = ATag[r][i];
             ATag[r][j] = c*A[r][j] + s*A[r][i];
+            ATag[j][r] = ATag[r][j];
         }
     }
     ATag[i][i] = pow(c,2)*(A[i][i]) + pow(s,2)*(A[j][j]) - 2*s*c*A[i][j];
@@ -298,28 +303,32 @@ double** getATag(double **A,int N, double c, double s, int i, int j)
     ATag[i][j] = 0;
 }
 
-int checkConverstion(double** ATag, double offSquareA, int N, int i, int j)
+int checkConverstion(double** ATag, double offSquareA, int N )
 {
     int r;
     double offSquareATag, eps;
 
     eps = pow(10,-5);
-    offSquare(ATag, N, i, j);
+    offSquareATag = offSquare(ATag, N);
     return (offSquareA - offSquareATag) <= eps;
 }
 
-double offSquare(double **A, int N, int i, int j)
+double offSquare(double **A, int N)
 {
-    int r;
+    int i, j;
     double sum;
 
-    for(r = 0; r < N; r++)
+    sum = 0.0;
+    for(i = 0; i < N; i++)
     {
-        sum += pow(A[r][i],2) + pow(A[r][j],2);
+        for(j = i+1; j < N; j++)
+        {
+            sum += 2*pow(A[i][j],2);
+        }
     }
     return sum;
 }
-double sumVectors(double* x1, double* x2, int d)
+double sumVectorsDiff(double* x1, double* x2, int d)
 {
     int i;
     double c, sum;
@@ -334,6 +343,27 @@ double sumVectors(double* x1, double* x2, int d)
     return sum;
 }
 
+double sumVectors(double* x1, double* x2, int d, int sign)
+{
+    int i;
+    double sum;
+    
+    if(sign != 0)
+    {
+        for(i = 0; i < d; i++)
+        {
+            sum += x1[i] + x2[i];
+        }
+    }
+    else
+    {
+        for(i = 0; i < d; i++)
+        {
+            sum += x1[i] -  x2[i];
+        }
+    }
+    return sum;
+}
 double sumRow(double* row, int N, int squared)
 {
     int i;
@@ -492,4 +522,21 @@ void copyRows(double* dst, double* src, int N)
     {
         dst[i] = src[i];
     }
+}
+
+int checkDiag(double** A, int N)
+{
+    int i, j;
+
+    for(i = 0; i < N; i++)
+    {
+        for(j = 0; j < N; j++)
+        {
+            if(j != i && A[i][j] != 0)
+            {
+                return 0;
+            }
+        }
+    }
+    return 1;
 }
