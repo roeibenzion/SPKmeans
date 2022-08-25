@@ -4,8 +4,57 @@
 #include <math.h>
 #include <string.h>
 
+int main(int argc, char **argv)
+{
+    int i, j, N, d, offset;
+    double **X, num;
+    FILE *ifp_datapoints;
+    char*c;
 
-void navigator(char* goal, double *vect, double** mat, int N, int d, int K)
+    offset = 0;
+    d = 0;
+    N = 0; 
+    ifp_datapoints = NULL;
+
+    if(argc != 2)
+    {
+        printf("Invalid Input!");
+        exit(1);
+    }
+
+    ifp_datapoints = fopen(argv[2], "r");
+    //get d
+    while((c = getc(ifp_datapoints)) != '\n')
+    {
+        if(c == ',')
+            d++;
+        offset++;
+    }
+    fseek(ifp_datapoints, 0, 0);
+    offset = 0;
+
+    //get N
+    while(fscanf(ifp_datapoints, "%lf", &num) == 1)
+    {
+        c = getc(ifp_datapoints);
+        if(c == '\n')
+            N++;
+        offset++;
+    }
+    fseek(ifp_datapoints,0 , 0);
+
+    X = getMatrix(N, d);
+    for(i = 0; i < N; i++)
+    {
+        for(j = 0; j < d; j++)
+        {
+            fscanf(ifp_datapoints, "%lf", &num);
+            X[i][j] = num;
+        }
+    }
+    navigator(argv[1], X, N, d, -1, 0);
+}
+void navigator(char* goal, double** mat, int N, int d, int K, int pyOrC)
 {
     int i;
     double **W, **D, **Lnorm, **temp, **V, *eigenValues, **U, **T;
@@ -19,33 +68,67 @@ void navigator(char* goal, double *vect, double** mat, int N, int d, int K)
 
     if(strcmp(goal,wam))
     {
-        W = wamF(vect, N, D);
-        //return to python
+        W = wamF(mat, N, D);
+        if(pyOrC)
+        {
+            //return to python
+        }
+        else
+        {
+            printM(W, N);
+        }
     }
 
     else if(strcmp(goal,ddg))
     {
-        W = wamF(vect, N, D);
+        W = wamF(mat, N, D);
         D = ddgF(W, N);
-        //return to python
+        if(pyOrC)
+        {
+            //return to python
+        }
+        else
+        {
+            printM(D, N);
+        }
     }
 
     else if(strcmp(goal,lnorm))
     {
-        W = wamF(vect, N, D);
+        W = wamF(mat, N, D);
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
+        if(pyOrC)
+        {
+            //return to python
+        }
+        else
+        {
+            printM(Lnorm, N);
+        }
     }
 
     else if(strcmp(goal,jacobi))
     {
         temp = JacobiF(mat, N);
-        //return to python
-        
+        if(pyOrC)
+        {
+            //return to python
+        }
+        else
+        {
+            printV(temp[0], N);
+            U = getMatrix(N, N);
+            for(i = 0; i < N; i++)
+            {
+                copyRows(U[i], temp[i+1], N);
+            }
+            printM(U, N);
+        }
     }
     else if(strcmp(goal, spk))
     {
-        W = wamF(vect, N, D);
+        W = wamF(mat, N, D);
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
         temp = JacobiF(Lnorm, N);
@@ -55,7 +138,7 @@ void navigator(char* goal, double *vect, double** mat, int N, int d, int K)
             copyRows(V[i], temp[i+1], N);
         }
         V = sortMatrixColumns(V, N, eigenValues);
-        if(K == -1)
+        if(K < 1)
             {
                 K = eigenGap(eigenValues, N);
             }
@@ -66,8 +149,10 @@ void navigator(char* goal, double *vect, double** mat, int N, int d, int K)
     else
     {
         printf("Invalid Input!");
+        exit(1);
     }
 }
+
 double ** wamF(double **vect, int N, int d)
 {
     int i, j;
@@ -121,6 +206,8 @@ double** lnormF(double** W, double **D, int N)
     return L;
 }
 
+//Returns a (N+1)X(N) matrix, where the first row is the eigenValues and 
+// the rest is a (N)X(N) matrix of eigenVectors.
 double** JacobiF(double** A, int N)
 {
     int i,j, iMax, jMax, countIter, firstIter;
@@ -410,15 +497,17 @@ void matToThePow(double** M, int N, double exponent, int diag)
 
 double** matMul(double **A, double **B, int N)
 {
-    int i,j;
-    double **C;
+    int i,j,k;
+    double **C, sum;
     C = getMatrix(N,N);
-    for(i = 0; i < N; i++)
-    {
-        for(j = 0; j < N; j++)
-        {
-            C[i][j] = A[i][j] * B[i][j];
+    for (i = 0; i < N; i++) {
+      for (j = 0; j < N; j++) {
+        sum = 0.0;
+        for (k = 0; k < N; k++) {
+          sum = sum + A[i][k]*B[k][j];
         }
+        C[i][j] = sum;
+      }
     }
     return C;
 }
@@ -539,4 +628,40 @@ int checkDiag(double** A, int N)
         }
     }
     return 1;
+}
+
+void printM(double** M, int N)
+{
+    int i, j;
+    for(i = 0; i < N ; i++)
+    {
+        for(j = 0; j < N-1; j++)
+        {
+            printf("%0.4f,", M[i][j]);
+        }
+        printf("%0.4f\n", M[i][N-1]);
+    }
+}
+
+void printV(double* V, int N)
+{
+    int i;
+    for(i = 0; i < N-1 ; i++)
+    {
+        printf("%0.4f,", V[i]);
+    }
+    printf("%0.4f", V[N-1]);
+}
+
+int getD(FILE* input)
+{
+    int d, offset;
+    char c;
+
+    while((c = getc(input)) != '\n')
+    {
+        if(c == ',')
+            d++;
+        offset++;
+    }
 }
