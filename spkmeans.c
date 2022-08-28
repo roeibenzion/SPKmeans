@@ -15,7 +15,7 @@ double** sortMatrixColumns(double** V, int N, double* A);
 double** obtainLargestK(double **V, int N, int K);
 double** formTfromU(double** U, int N, int K);
 double findT(double theta);
-double** getATag(double **A,int N, double c, double s, int i, int j);
+void getATag(double **A,int N, double c, double s, int i, int j);
 int checkConverstion(double** ATag, double offSquareA, int N );
 double offSquare(double **A, int N);
 double sumRow(double* row, int N, int squared);
@@ -254,13 +254,12 @@ double** JacobiF(double** A, int N)
 
    countIter = 0;
    firstIter = 1;
-   maxVal = 0.0;
-   iMax = 0;
-   jMax = 0;
 
-    printM(A, N);
    while(countIter < 100)
    {
+       maxVal = 0.0;
+       iMax = 0;
+       jMax = 0;
        countIter++;
        if(checkDiag(A, N))
        {
@@ -282,6 +281,8 @@ double** JacobiF(double** A, int N)
             }
         }
     }
+
+       printf("%d %d\n", iMax, jMax);
     theta = (A[jMax][jMax] - A[iMax][iMax]) / (2*A[iMax][jMax]);
     t = findT(theta);
     c = 1/(sqrt(t*t + 1));
@@ -293,15 +294,14 @@ double** JacobiF(double** A, int N)
     P[jMax][iMax] = -s;
 
     offSquareA = offSquare(A, N);
-    A = getATag(A, N, c, s, iMax, jMax);
-    if(checkConverstion(A, offSquareA, N))
-    {
-        break;
-    }
+    getATag(A, N, c, s, iMax, jMax);
     V = matMul(V, P, N);
+       if(checkConverstion(A, offSquareA, N))
+       {
+           break;
+       }
    }
-    printf("%d\n", countIter);
-   return getJacobiMatrix(V, A,N);
+   return getJacobiMatrix(V,A,N);
 }
 
 double** getJacobiMatrix(double **V, double**A, int N)
@@ -320,6 +320,66 @@ double** getJacobiMatrix(double **V, double**A, int N)
     }
     return U;
 }
+
+void getATag(double **A,int N, double c, double s, int i, int j) {
+    int r;
+    double **ATag;
+    ATag = getMatrix(N, N);
+    for (r = 0; r < N; r++)
+    {
+        copyRows(ATag[r], A[r], N);
+    }
+    for(r = 0; r < N; r++)
+    {
+        if(r != j && r != i)
+        {
+            ATag[r][i] = c*A[r][i] - s*A[r][j];
+            ATag[i][r] = A[r][i];
+            ATag[r][j] = c*A[r][j] + s*A[r][i];
+            ATag[j][r] = A[r][j];
+        }
+    }
+    ATag[i][i] = pow(c,2)*(A[i][i]) + pow(s,2)*(A[j][j]) - 2*s*c*A[i][j];
+    ATag[j][j] = pow(c,2)*(A[i][i]) + pow(c,2)*(A[j][j]) + 2*s*c*A[i][j];
+    ATag[i][j] =  0;
+    ATag[j][i] = 0;
+
+    for (r = 0; r < N; r++)
+    {
+        copyRows(A[r], ATag[r], N);
+    }
+    freeMatrix(ATag, N);
+}
+
+int checkConverstion(double** ATag, double offSquareA, int N )
+{
+    int r;
+    double offSquareATag, eps;
+
+    eps = pow(10,-5);
+    offSquareATag = offSquare(ATag, N);
+    return (offSquareA - offSquareATag) <= eps;
+}
+
+double offSquare(double **A, int N)
+{
+    int i, j;
+    double sum;
+
+    sum = 0.0;
+    for(i = 0; i < N; i++)
+    {
+        for(j = 0; j < N; j++)
+        {
+            if(i != j)
+            {
+                sum += pow(A[i][j], 2);
+            }
+        }
+    }
+    return sum;
+}
+
 int eigenGap(double* eigenValues, int N)
 {
     double deltaI, temp;
@@ -412,58 +472,6 @@ double findT(double theta)
     base = fabs(theta) + sqrt((pow(theta,2)) + 1);
     t = sign / base;
     return t;
-}
-
-double** getATag(double **A,int N, double c, double s, int i, int j)
-{
-    int r;
-    double **ATag;
-
-    ATag = getMatrix(N,N);
-    for(r = 0; r < N; r++)
-    {
-        if(r != j && r != i)
-        {
-            ATag[r][i] = c*A[r][i] - s*A[r][j];
-            ATag[i][r] = ATag[r][i];
-            ATag[r][j] = c*A[r][j] + s*A[r][i];
-            ATag[j][r] = ATag[r][j];
-        }
-    }
-    ATag[i][i] = pow(c,2)*(A[i][i]) + pow(s,2)*(A[j][j]) - 2*s*c*A[i][j];
-    ATag[j][j] = pow(c,2)*(A[i][i]) + pow(c,2)*(A[j][j]) + 2*s*c*A[i][j];
-    ATag[i][j] =  0;
-    ATag[j][i] = 0;
-    return ATag;
-}
-
-int checkConverstion(double** ATag, double offSquareA, int N )
-{
-    int r;
-    double offSquareATag, eps;
-
-    eps = pow(10,-5);
-    offSquareATag = offSquare(ATag, N);
-    return (offSquareA - offSquareATag) <= eps;
-}
-
-double offSquare(double **A, int N)
-{
-    int i, j;
-    double sum;
-
-    sum = 0.0;
-    for(i = 0; i < N; i++)
-    {
-        for(j = 0; j < N; j++)
-        {
-            if(i != j)
-            {
-                sum += pow(A[i][j], 2);
-            }
-        }
-    }
-    return sum;
 }
 
 double sumRow(double* row, int N, int squared)
