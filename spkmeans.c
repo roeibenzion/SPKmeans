@@ -4,25 +4,61 @@
 #include <math.h>
 #include <string.h>
 
+int main(int argc, char **argv);
+void navigator(char* goal, double** mat, int N, int d, int K);
+double ** wamF(double **vect, int N, int d);
+double** ddgF(double **W, int N);
+double** lnormF(double** W, double **D, int N);
+double** JacobiF(double** A, int N);
+int eigenGap(double* eigenValues, int N);
+double** sortMatrixColumns(double** V, int N, double* A);
+double** obtainLargestK(double **V, int N, int K);
+double** formTfromU(double** U, int N, int K);
+double findT(double theta);
+double** getATag(double **A,int N, double c, double s, int i, int j);
+int checkConverstion(double** ATag, double offSquareA, int N );
+double offSquare(double **A, int N);
+double sumRow(double* row, int N, int squared);
+void matToThePow(double** M, int N, double exponent, int diag);
+double** matMul(double **A, double **B, int N);
+double** matSum(double** A, double** B, int N, int sign);
+double ** getMatrix(int N, int d);
+void freeMatrix(double** m, int k);
+double *getVector(int N);
+void freeVector(double** m, int k);
+int compare( const void* a, const void* b);
+int searchIndex(double* arr, int N, int val);
+void copyRows(double* dst, double* src, int N);
+int checkDiag(double** A, int N);
+void printM(double** M, int N);
+void printV(double* V, int N);
+double** getJacobiMatrix(double **V, double**A, int N);
+
+
 int main(int argc, char **argv)
 {
     int i, j, N, d, offset;
     double **X, num;
     FILE *ifp_datapoints;
-    char*c;
+    char c;
 
     offset = 0;
     d = 0;
-    N = 0; 
+    N = 0;
     ifp_datapoints = NULL;
 
-    if(argc != 2)
+    if(argc != 3)
     {
         printf("Invalid Input!");
         exit(1);
     }
 
-    ifp_datapoints = fopen(argv[2], "r");
+    ifp_datapoints = fopen("C:\\Users\\roeib\\CLionProjects\\spkmeans\\test_jacobi_5_input.txt", "r");
+    if(ifp_datapoints == NULL)
+    {
+        printf("An error has occured");
+        exit(1);
+    }
     //get d
     while((c = getc(ifp_datapoints)) != '\n')
     {
@@ -30,6 +66,7 @@ int main(int argc, char **argv)
             d++;
         offset++;
     }
+    d += 1;
     fseek(ifp_datapoints, 0, 0);
     offset = 0;
 
@@ -42,93 +79,75 @@ int main(int argc, char **argv)
         offset++;
     }
     fseek(ifp_datapoints,0 , 0);
-
+    i = 0;
+    j = 0;
     X = getMatrix(N, d);
-    for(i = 0; i < N; i++)
+    while(fscanf(ifp_datapoints, "%lf", &num) == 1)
     {
-        for(j = 0; j < d; j++)
+        X[i][j] = num;
+        c = getc(ifp_datapoints);
+        if(c == '\n')
         {
-            fscanf(ifp_datapoints, "%lf", &num);
-            X[i][j] = num;
+            i++;
+            j = 0;
         }
+        else
+            j++;
     }
-    navigator(argv[1], X, N, d, -1, 0);
+
+    if(fclose(ifp_datapoints) != 0)
+    {
+        printf("An Error Has Occurred");
+        exit(1);
+    }
+    navigator(argv[1], X, N, d, -1);
 }
-void navigator(char* goal, double** mat, int N, int d, int K, int pyOrC)
+void navigator(char* goal, double** mat, int N, int d, int K)
 {
-    int i;
+    int i, j;
     double **W, **D, **Lnorm, **temp, **V, *eigenValues, **U, **T;
     char* spk, *wam, *ddg, *lnorm, *jacobi;
+    FILE* ifp;
 
+    ifp = fopen("C:\\Users\\roeib\\CLionProjects\\spkmeans\\out.txt", "w");
     spk = "spk";
     wam = "wam";
     ddg = "ddg";
     lnorm = "lnorm";
     jacobi = "jacobi";
 
-    if(strcmp(goal,wam))
-    {
-        W = wamF(mat, N, D);
-        if(pyOrC)
-        {
-            //return to python
-        }
-        else
-        {
-            printM(W, N);
-        }
+    if(!strcmp(goal,wam) ) {
+        W = wamF(mat, N, d);
+        printM(W, N);
     }
-
-    else if(strcmp(goal,ddg))
+    else if(!strcmp(goal,ddg))
     {
-        W = wamF(mat, N, D);
+        W = wamF(mat, N, d);
         D = ddgF(W, N);
-        if(pyOrC)
-        {
-            //return to python
-        }
-        else
-        {
-            printM(D, N);
-        }
+        printM(D, N);
     }
 
-    else if(strcmp(goal,lnorm))
+    else if(!strcmp(goal,lnorm))
     {
-        W = wamF(mat, N, D);
+        W = wamF(mat, N, d);
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
-        if(pyOrC)
-        {
-            //return to python
-        }
-        else
-        {
-            printM(Lnorm, N);
-        }
+        printM(Lnorm, N);
     }
 
-    else if(strcmp(goal,jacobi))
+    else if(!strcmp(goal,jacobi))
     {
-        temp = JacobiF(mat, N);
-        if(pyOrC)
+        U = JacobiF(mat, N);
+        for(i = 0; i< N; i++)
         {
-            //return to python
+            printV((U[i]), N);
+            printf(("\n"));
         }
-        else
-        {
-            printV(temp[0], N);
-            U = getMatrix(N, N);
-            for(i = 0; i < N; i++)
-            {
-                copyRows(U[i], temp[i+1], N);
-            }
-            printM(U, N);
-        }
+        printV((U[N]), N);
     }
-    else if(strcmp(goal, spk))
+    else if(!strcmp(goal, spk))
     {
-        W = wamF(mat, N, D);
+        W = wamF(mat, N, d);
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
         temp = JacobiF(Lnorm, N);
@@ -153,10 +172,21 @@ void navigator(char* goal, double** mat, int N, int d, int K, int pyOrC)
     }
 }
 
-double ** wamF(double **vect, int N, int d)
+double euclidSum(double *x1, double*x2, int d)
 {
-    int i, j;
-    double c;
+    int i;
+    double sum;
+    sum = 0.0;
+    for( i = 0; i < d; i++)
+    {
+        sum += pow((x1[i] - x2[i]), 2);
+    }
+    return sqrt(sum);
+}
+double** wamF(double **vect, int N, int d)
+{
+    int i, j, k;
+
     double** W = getMatrix(N, N);
     for(i = 0; i < N; i++)
     {
@@ -168,19 +198,19 @@ double ** wamF(double **vect, int N, int d)
             }
             else
             {
-                c = sumVectorsDiff(vect[i], vect[j], d);
-                W[i][j] = exp(-(c/2));
+                W[i][j] = exp((-(euclidSum(vect[i], vect[j], d)/2)));
             }
         }
     }
     return W;
+
 }
 
 double** ddgF(double **W, int N)
 {
     int i;
     double sum;
-    
+
     double** D = getMatrix(N, N);
     for(i = 0; i < N; i++)
     {
@@ -206,75 +236,90 @@ double** lnormF(double** W, double **D, int N)
     return L;
 }
 
-//Returns a (N+1)X(N) matrix, where the first row is the eigenValues and 
+//Returns a (N+1)X(N) matrix, where the first row is the eigenValues and
 // the rest is a (N)X(N) matrix of eigenVectors.
 double** JacobiF(double** A, int N)
 {
     int i,j, iMax, jMax, countIter, firstIter;
     double theta, t, c, s, maxVal, offSquareA;
-    double ** P, **V, **eigenValuesVectors;
+    double ** P, **V;
 
-    maxVal = 0.0;
-    countIter = 0;
-    firstIter = 1;
-    P = getMatrix(N, N);
-    for(i = 0; i < N; i++)
+   V = getMatrix(N, N);
+   P = getMatrix(N,N);
+   for(i = 0; i < N; i++)
+   {
+    P[i][i] = 1;
+    V[i][i] = 1;
+   }
+
+   countIter = 0;
+   firstIter = 1;
+   maxVal = 0.0;
+   iMax = 0;
+   jMax = 0;
+
+    printM(A, N);
+   while(countIter < 100)
+   {
+       countIter++;
+       if(checkDiag(A, N))
+       {
+           break;
+       }
+       for(i = 0; i < N; i++)
         {
-            P[i][i] = 1;
-        }
-
-    while(countIter < 100)
-    {
-        countIter++;
-        if(checkDiag(A, N) == 1)
+        for(j = 0; j < N ; j++)
+        {
+            if(i == j)
             {
-                break;
+                continue;
             }
-        for(i = 0; i < N; i++)
-        {
-            for(j = 0; j < N; j++)
+            else if(maxVal < A[i][j])
             {
-                maxVal = getMax(maxVal, abs(A[i][j])); 
                 iMax = i;
                 jMax = j;
+                maxVal = A[i][j];
             }
         }
-        theta = (A[jMax][jMax] - A[iMax][iMax]) / (2*(A[iMax][jMax]));
-        t = findT(theta);
-        c = 1/(sqrt(pow(t,2) + 1));
-        s = t*c;
-        P[iMax][jMax] = s;
-        P[jMax][iMax] = -s;
-        P[iMax][iMax] = c;
-        P[jMax][jMax] = c;
-        if(firstIter == 1)
-        {
-            firstIter = 0;
-            V = P;
-        }
-        else
-        {
-            V = matMul(V, P, N);
-        }
-        offSquareA = offSquare(A, N, iMax, jMax);
-        A = getATag(A, N, c, s, iMax, jMax);
-        if(checkConverstion(A,offSquareA, N, iMax, jMax))
-        {
-            break;
-        }
     }
-    eigenValuesVectors = getMatrix(N+1,N);
+    theta = (A[jMax][jMax] - A[iMax][iMax]) / (2*A[iMax][jMax]);
+    t = findT(theta);
+    c = 1/(sqrt(t*t + 1));
+    s = t*c;
+
+    P[iMax][iMax] = c;
+    P[jMax][jMax] = c;
+    P[iMax][jMax] = s;
+    P[jMax][iMax] = -s;
+
+    offSquareA = offSquare(A, N);
+    A = getATag(A, N, c, s, iMax, jMax);
+    if(checkConverstion(A, offSquareA, N))
+    {
+        break;
+    }
+    V = matMul(V, P, N);
+   }
+    printf("%d\n", countIter);
+   return getJacobiMatrix(V, A,N);
+}
+
+double** getJacobiMatrix(double **V, double**A, int N)
+{
+    int i,j;
+    double** U;
+
+    U = getMatrix(N+1, N);
     for(i = 0; i < N; i++)
     {
-        eigenValuesVectors[0][i] = A[i][i];
+        U[0][i] = A[i][i];
     }
     for(i = 1; i < N+1; i++)
     {
-        copyRows(eigenValuesVectors[i], V[i-1], N);
+        copyRows(U[i], V[i-1], N);
     }
-    return eigenValuesVectors;
+    return U;
 }
-
 int eigenGap(double* eigenValues, int N)
 {
     double deltaI, temp;
@@ -286,11 +331,11 @@ int eigenGap(double* eigenValues, int N)
         return 1;
     }
     i = 1;
-    deltaI = abs(eigenValues[i] - eigenValues[i+1]);
+    deltaI = fabs(eigenValues[i] - eigenValues[i+1]);
     maxIndex = 1;
     for(i = 2; i < iter; i++)
     {
-        temp = abs(eigenValues[i] - eigenValues[i+1]);
+        temp = fabs(eigenValues[i] - eigenValues[i+1]);
         if(deltaI < temp)
         {
             maxIndex = i;
@@ -332,7 +377,7 @@ double** obtainLargestK(double **V, int N, int K)
        for(j = 0; j < N; j++)
        {
         U[i][j] = V[i][j];
-       } 
+       }
     }
     return U;
 }
@@ -364,7 +409,7 @@ double findT(double theta)
     {
         sign = 1;
     }
-    base = abs(theta) + sqrt((pow(theta,2)) + 1);
+    base = fabs(theta) + sqrt((pow(theta,2)) + 1);
     t = sign / base;
     return t;
 }
@@ -387,7 +432,9 @@ double** getATag(double **A,int N, double c, double s, int i, int j)
     }
     ATag[i][i] = pow(c,2)*(A[i][i]) + pow(s,2)*(A[j][j]) - 2*s*c*A[i][j];
     ATag[j][j] = pow(c,2)*(A[i][i]) + pow(c,2)*(A[j][j]) + 2*s*c*A[i][j];
-    ATag[i][j] = 0;
+    ATag[i][j] =  0;
+    ATag[j][i] = 0;
+    return ATag;
 }
 
 int checkConverstion(double** ATag, double offSquareA, int N )
@@ -408,49 +455,17 @@ double offSquare(double **A, int N)
     sum = 0.0;
     for(i = 0; i < N; i++)
     {
-        for(j = i+1; j < N; j++)
+        for(j = 0; j < N; j++)
         {
-            sum += 2*pow(A[i][j],2);
+            if(i != j)
+            {
+                sum += pow(A[i][j], 2);
+            }
         }
     }
-    return sum;
-}
-double sumVectorsDiff(double* x1, double* x2, int d)
-{
-    int i;
-    double c, sum;
-    
-    for(i = 0; i < d; i++)
-    {
-        c = x1[i] - x2[i];
-        c = pow(c,2);
-        sum += c;
-    }
-    sum = sqrt(sum);
     return sum;
 }
 
-double sumVectors(double* x1, double* x2, int d, int sign)
-{
-    int i;
-    double sum;
-    
-    if(sign != 0)
-    {
-        for(i = 0; i < d; i++)
-        {
-            sum += x1[i] + x2[i];
-        }
-    }
-    else
-    {
-        for(i = 0; i < d; i++)
-        {
-            sum += x1[i] -  x2[i];
-        }
-    }
-    return sum;
-}
 double sumRow(double* row, int N, int squared)
 {
     int i;
@@ -560,7 +575,7 @@ void freeMatrix(double** m, int k) {
     free(m);
 }
 
-double ** getVector(int N)
+double * getVector(int N)
 {
     double *data;
     int i;
@@ -574,13 +589,6 @@ void freeVector(double** m, int k) {
     free(m);
 }
 
-int getMax(int x, int y)
-{
-    if(x>y)
-        return x;
-    return y;
-}
-
 int compare( const void* a, const void* b)
 {
      double double_a, double_b;
@@ -591,7 +599,7 @@ int compare( const void* a, const void* b)
      else return 1;
 }
 
-int searchIndex(int* arr, int N, int val)
+int searchIndex(double* arr, int N, int val)
 {
     int i;
     for(i = 0; i<N; i++)
@@ -651,17 +659,4 @@ void printV(double* V, int N)
         printf("%0.4f,", V[i]);
     }
     printf("%0.4f", V[N-1]);
-}
-
-int getD(FILE* input)
-{
-    int d, offset;
-    char c;
-
-    while((c = getc(input)) != '\n')
-    {
-        if(c == ',')
-            d++;
-        offset++;
-    }
 }
