@@ -15,7 +15,7 @@ double** sortMatrixColumns(double** V, int N, double* A);
 double** obtainLargestK(double **V, int N, int K);
 double** formTfromU(double** U, int N, int K);
 double findT(double theta);
-void getATag(double **A,int N, double c, double s, int i, int j);
+double** getATag(double **A,int N, double c, double s, int i, int j);
 int checkConverstion(double** ATag, double offSquareA, int N );
 double offSquare(double **A, int N);
 double sumRow(double* row, int N, int squared);
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    ifp_datapoints = fopen("C:\\Users\\roeib\\CLionProjects\\spkmeans\\test_jacobi_5_input.txt", "r");
+    ifp_datapoints = fopen("C:\\Users\\roeib\\CLionProjects\\spkmeans\\test_jacobi_4_input.txt", "r");
     if(ifp_datapoints == NULL)
     {
         printf("An error has occured");
@@ -158,9 +158,9 @@ void navigator(char* goal, double** mat, int N, int d, int K)
         }
         V = sortMatrixColumns(V, N, eigenValues);
         if(K < 1)
-            {
-                K = eigenGap(eigenValues, N);
-            }
+        {
+            K = eigenGap(eigenValues, N);
+        }
         U = obtainLargestK(V, N, K);
         T = formTfromU(U, N, K);
         //return to python and connect to KMEANS from HW2.
@@ -238,70 +238,46 @@ double** lnormF(double** W, double **D, int N)
 
 //Returns a (N+1)X(N) matrix, where the first row is the eigenValues and
 // the rest is a (N)X(N) matrix of eigenVectors.
-double** JacobiF(double** A, int N)
+
+void transpose(double** A, int N)
 {
-    int i,j, iMax, jMax, countIter, firstIter;
-    double theta, t, c, s, maxVal, offSquareA;
-    double ** P, **V;
-
-   V = getMatrix(N, N);
-   P = getMatrix(N,N);
-   for(i = 0; i < N; i++)
-   {
-    P[i][i] = 1;
-    V[i][i] = 1;
-   }
-
-   countIter = 0;
-   firstIter = 1;
-
-   while(countIter < 100)
-   {
-       maxVal = 0.0;
-       iMax = 0;
-       jMax = 0;
-       countIter++;
-       if(checkDiag(A, N))
-       {
-           break;
-       }
-       for(i = 0; i < N; i++)
-        {
-        for(j = 0; j < N ; j++)
-        {
-            if(i == j)
-            {
-                continue;
-            }
-            else if(maxVal < A[i][j])
-            {
-                iMax = i;
-                jMax = j;
-                maxVal = A[i][j];
-            }
+    int i, j;
+    double** transpose;
+    transpose = getMatrix(N, N);
+    for (i = 0;i < N;i++) {
+        for (j = 0; j < N; j++) {
+            transpose[j][i] = A[i][j];
         }
     }
+    for(i = 0; i < N; i++)
+    {
+        copyRows(A[i], transpose[i], N);
+    }
+    freeMatrix(transpose, N);
+}
+double** getAtagP(double** A, double** P, int N)
+{
+    double **temp;
 
-       printf("%d %d\n", iMax, jMax);
-    theta = (A[jMax][jMax] - A[iMax][iMax]) / (2*A[iMax][jMax]);
-    t = findT(theta);
-    c = 1/(sqrt(t*t + 1));
-    s = t*c;
-
-    P[iMax][iMax] = c;
-    P[jMax][jMax] = c;
-    P[iMax][jMax] = s;
-    P[jMax][iMax] = -s;
-
-    offSquareA = offSquare(A, N);
-    getATag(A, N, c, s, iMax, jMax);
-    V = matMul(V, P, N);
-       if(checkConverstion(A, offSquareA, N))
-       {
-           break;
-       }
-   }
-   return getJacobiMatrix(V,A,N);
+    transpose(P, N);
+    temp = matMul(P, A, N);
+    transpose(P, N);
+    temp = matMul(A, P, N);
+    return temp;
+}
+void generateId(double** A, int N)
+{
+    int i, j;
+    for(i = 0; i < N; i++)
+    {
+        for(j = 0; j < N; j++)
+        {
+            if(i == j)
+                A[i][j] = 1;
+            else
+                A[i][j] = 0;
+        }
+    }
 }
 
 double** getJacobiMatrix(double **V, double**A, int N)
@@ -321,7 +297,7 @@ double** getJacobiMatrix(double **V, double**A, int N)
     return U;
 }
 
-void getATag(double **A,int N, double c, double s, int i, int j) {
+double** getATag(double **A,int N, double c, double s, int i, int j) {
     int r;
     double **ATag;
     ATag = getMatrix(N, N);
@@ -333,27 +309,27 @@ void getATag(double **A,int N, double c, double s, int i, int j) {
     {
         if(r != j && r != i)
         {
-            ATag[r][i] = c*A[r][i] - s*A[r][j];
-            ATag[i][r] = A[r][i];
-            ATag[r][j] = c*A[r][j] + s*A[r][i];
-            ATag[j][r] = A[r][j];
+            ATag[r][i] = (c*A[r][i]) - (s*A[r][j]);
+            ATag[i][r] = ATag[r][i];
+            ATag[r][j] = (c*A[r][j]) + (s*A[r][i]);
+            ATag[j][r] = ATag[r][j];
         }
     }
-    ATag[i][i] = pow(c,2)*(A[i][i]) + pow(s,2)*(A[j][j]) - 2*s*c*A[i][j];
-    ATag[j][j] = pow(c,2)*(A[i][i]) + pow(c,2)*(A[j][j]) + 2*s*c*A[i][j];
-    ATag[i][j] =  0;
-    ATag[j][i] = 0;
+    ATag[i][i] = (c*c)*(A[i][i]) + (s*s)*(A[j][j]) - 2*(s*c*A[i][j]);
+    ATag[j][j] = (s*s)*(A[i][i]) + (c*c)*(A[j][j]) + 2*(s*c*A[i][j]);
+    ATag[i][j] =  0.0;
+    ATag[j][i] = 0.0;
 
     for (r = 0; r < N; r++)
     {
         copyRows(A[r], ATag[r], N);
     }
     freeMatrix(ATag, N);
+    return A;
 }
 
 int checkConverstion(double** ATag, double offSquareA, int N )
 {
-    int r;
     double offSquareATag, eps;
 
     eps = pow(10,-5);
@@ -378,6 +354,101 @@ double offSquare(double **A, int N)
         }
     }
     return sum;
+}
+
+double findT(double theta)
+{
+    int sign;
+    double base, t;
+    if(theta < 0)
+    {
+        sign = -1;
+    }
+    else
+    {
+        sign = 1;
+    }
+    base = fabs(theta) + sqrt(((theta*theta) + 1));
+    t = sign / base;
+    return t;
+}
+
+double** JacobiF(double** A, int N)
+{
+    int i,j, iMax, jMax, countIter;
+    double theta, t, c, s, maxVal, offSquareA;
+    double ** P, **V;
+
+    V = getMatrix(N, N);
+    P = getMatrix(N,N);
+    generateId(V, N);
+    countIter = 0;
+
+    while(countIter < 100)
+    {
+        maxVal = 0.0;
+        iMax = 0;
+        jMax = 0;
+        countIter++;
+        for(i = 0; i < N; i++)
+        {
+            for(j = 0; j < N ; j++)
+            {
+                if(maxVal < fabs(A[i][j]) && i!=j)
+                {
+                    iMax = i;
+                    jMax = j;
+                    maxVal = fabs(A[i][j]);
+                }
+            }
+        }
+        if(maxVal == 0.0)
+        {
+            break;
+        }
+        theta = (A[jMax][jMax] - A[iMax][iMax]) / (2*A[iMax][jMax]);
+        t = findT(theta);
+        c = 1/(sqrt(t*t + 1));
+        s = t*c;
+
+        printf("%d %d", iMax, jMax);
+        printf("\n");
+
+        generateId(P, N);
+        printf("see I ");
+        printf("\n");
+        printM(P, N);
+        printf("\n");
+        P[iMax][iMax] = c;
+        P[jMax][jMax] = c;
+        P[iMax][jMax] = s;
+        P[jMax][iMax] = -s;
+        printM(P, N);
+        printf("\n");
+
+        printf("previous V");
+        printf("\n");
+        printM(V, N);
+        V = matMul(V, P, N);
+        printf("\n");
+        printM(V, N);
+        printf("\n");
+        offSquareA = offSquare(A, N);
+        printf("previous A");
+        printf("\n");
+        printM(A, N);
+        printf("\n");
+        A = getATag(A, N, c, s, iMax, jMax);
+        printM(A, N);
+        printf("\n");
+        //A = getAtagP(A, P, N);
+        if(checkConverstion(A, offSquareA, N))
+        {
+            break;
+        }
+    }
+    freeMatrix(P, N);
+    return getJacobiMatrix(V,A,N);
 }
 
 int eigenGap(double* eigenValues, int N)
@@ -434,10 +505,10 @@ double** obtainLargestK(double **V, int N, int K)
     U = getMatrix(N, K);
     for(i = 0; i < K; i++)
     {
-       for(j = 0; j < N; j++)
-       {
-        U[i][j] = V[i][j];
-       }
+        for(j = 0; j < N; j++)
+        {
+            U[i][j] = V[i][j];
+        }
     }
     return U;
 }
@@ -456,22 +527,6 @@ double** formTfromU(double** U, int N, int K)
         }
     }
     return T;
-}
-double findT(double theta)
-{
-    int sign;
-    double base, t;
-    if(theta < 0)
-    {
-        sign = -1;
-    }
-    else
-    {
-        sign = 1;
-    }
-    base = fabs(theta) + sqrt((pow(theta,2)) + 1);
-    t = sign / base;
-    return t;
 }
 
 double sumRow(double* row, int N, int squared)
@@ -512,9 +567,9 @@ void matToThePow(double** M, int N, double exponent, int diag)
     else
     {
         for(j = 0; j < N; j++)
-            {
-                M[j][j] = pow(M[j][j], exponent);
-            }
+        {
+            M[j][j] = pow(M[j][j], exponent);
+        }
     }
 }
 
@@ -523,14 +578,16 @@ double** matMul(double **A, double **B, int N)
     int i,j,k;
     double **C, sum;
     C = getMatrix(N,N);
-    for (i = 0; i < N; i++) {
-      for (j = 0; j < N; j++) {
-        sum = 0.0;
-        for (k = 0; k < N; k++) {
-          sum = sum + A[i][k]*B[k][j];
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            C[i][j]=0;
+            for(k=0;k<N;k++)
+            {
+                C[i][j]+=A[i][k]*B[k][j];
+            }
         }
-        C[i][j] = sum;
-      }
     }
     return C;
 }
@@ -568,8 +625,8 @@ double ** getMatrix(int N, int d)
             {
                 free(data[j]);
             }
-        free(data);
-        return NULL;
+            free(data);
+            return NULL;
         }
     }
     return data;
@@ -599,12 +656,12 @@ void freeVector(double** m, int k) {
 
 int compare( const void* a, const void* b)
 {
-     double double_a, double_b;
-     double_a = *((double*)a);
-     double_b = *((double*)b);
-     if ( double_a == double_b ) return 0;
-     else if ( double_a < double_b ) return -1;
-     else return 1;
+    double double_a, double_b;
+    double_a = *((double*)a);
+    double_b = *((double*)b);
+    if ( double_a == double_b ) return 0;
+    else if ( double_a < double_b ) return -1;
+    else return 1;
 }
 
 int searchIndex(double* arr, int N, int val)
@@ -613,9 +670,9 @@ int searchIndex(double* arr, int N, int val)
     for(i = 0; i<N; i++)
     {
         if(arr[i] == val)
-            {
-                return i;
-            }
+        {
+            return i;
+        }
     }
     return -1;
 }
