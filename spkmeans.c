@@ -12,10 +12,9 @@ double** matSum(double** A, double** B, int N, int sign);
 double ** getMatrix(int N, int d);
 void freeMatrix(double** m, int k);
 double * getVector(int N);
-void freeVector(double* m, int k);
+void freeVector(double* m);
 int searchIndex(double* arr, int N, double val);
 void copyRows(double* dst, double* src, int N);
-void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex);
 void printM(double** M, int N);
 void printV(double* V, int N);
 double euclidSum(double *x1, double*x2, int d);
@@ -99,7 +98,7 @@ void matToThePow(double** M, int N, double exponent, int diag)
 double** matMul(double **A, double **B, int N)
 {
     int i,j,k;
-    double **C, sum;
+    double **C;
     C = getMatrix(N,N);
     for(i=0;i<N;i++)
     {
@@ -166,14 +165,13 @@ void freeMatrix(double** m, int k) {
 double * getVector(int N)
 {
     double *data;
-    int i;
     data = (double*) calloc(N, sizeof(double*));
     if(data == NULL)
         return data;
     return data;
 }
 
-void freeVector(double* m, int k) {
+void freeVector(double* m) {
     free(m);
 }
 
@@ -257,7 +255,7 @@ double euclidSum(double *x1, double*x2, int d)
 /*Wam*/
 double** wamF(double **vect, int N, int d)
 {
-    int i, j, k;
+    int i, j;
 
     double** W = getMatrix(N, N);
     for(i = 0; i < N; i++)
@@ -281,7 +279,6 @@ double** wamF(double **vect, int N, int d)
 double** ddgF(double **W, int N)
 {
     int i;
-    double sum;
 
     double** D = getMatrix(N, N);
     for(i = 0; i < N; i++)
@@ -294,7 +291,7 @@ double** ddgF(double **W, int N)
 double** lnormF(double** W, double **D, int N)
 {
     double **I, **L, **C;
-    int i, j;
+    int i;
     I = getMatrix(N,N);
     C = getMatrix(N,N);
     for(i = 0; i < N; i++)
@@ -316,7 +313,7 @@ the rest is a (N)X(N) matrix of eigenVectors.
 /*Union to (N+1)X(N) matrix*/
 double** getJacobiMatrix(double **V, double**A, int N)
 {
-    int i,j;
+    int i;
     double** U;
 
     U = getMatrix(N+1, N);
@@ -522,7 +519,7 @@ void sortMatrixColumns(double** V, int N, double* A)
         copyRows(V[i], newV[i], N);
     }
     freeMatrix(newV, N);
-    freeVector(copy, N);
+    freeVector(copy);
 }
 
 /*Generates U, assume V is sorted in decreasing order by eigenValues*/
@@ -620,28 +617,12 @@ int main(int argc, char **argv)
         exit(1);
     }
     navigator(argv[1], X, N, d, -1);
-}
-
-double** getU(int N)
-{
-    int i, j;
-    double **U;
-
-    U= getMatrix(N+1, N);
-    for(i = 0; i < N+1; i++)
-    {
-        for(j = 0; j < N; j++)
-        {
-            U[i][j] = j+i;
-        }
-    }
-    printM(U, N);
-    return U;
+    return 0;
 }
 /*Navigate through goals*/
 void navigator(char* goal, double** mat, int N, int d, int K)
 {
-    int i, j;
+    int i;
     double **W, **D, **Lnorm, **temp, **V, *eigenValues, **U;
     const char* spk, *wam, *ddg, *lnorm, *jacobi;
 
@@ -673,7 +654,6 @@ void navigator(char* goal, double** mat, int N, int d, int K)
     else if(!strcmp(goal,jacobi))
     {
         temp = JacobiF(mat, N);
-        //temp = getU(N);
         U = getMatrix(N, N);
         eigenValues = getVector(N);
         copyRows(eigenValues, temp[0], N);
@@ -681,14 +661,12 @@ void navigator(char* goal, double** mat, int N, int d, int K)
         {
             copyRows(U[i],temp[i+1],N);
         }
-        sortMatrixColumns(U, N,eigenValues);
-        qsort(eigenValues,N,sizeof(double),compare);
         printf("\n");
         printV(eigenValues, N);
         printf("\n");
         printM(U, N);
         freeMatrix(temp, N);
-        freeVector(eigenValues, N);
+        freeVector(eigenValues);
         freeMatrix(U, N);
     }
     else if(!strcmp(goal, spk))
@@ -712,8 +690,8 @@ void navigator(char* goal, double** mat, int N, int d, int K)
         U = obtainLargestK(V, N, K);
         formTfromU(U, N, K);
         freeMatrix(V, N);
-        freeVector(eigenValues, N);
-        //return to python and connect to KMEANS from HW2.
+        freeVector(eigenValues);
+        /*return to python and connect to KMEANS from HW2.*/
     }
     else
     {
