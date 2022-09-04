@@ -219,13 +219,13 @@ void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex)
 void printM(double** M, int N)
 {
     int i, j;
-    for(i = 0; i < N ; i++)
+    for(i = 0; i < N; i++)
     {
         for(j = 0; j < N-1; j++)
         {
-            printf("%0.4f,", M[i][j]);
+            printf("%.4f,", M[i][j]);
         }
-        printf("%0.4f\n", M[i][N-1]);
+        printf("%.4f\n", M[i][N-1]);
     }
 }
 
@@ -234,9 +234,9 @@ void printV(double* V, int N)
     int i;
     for(i = 0; i < N-1 ; i++)
     {
-        printf("%0.4f,", V[i]);
+        printf("%.4f,", V[i]);
     }
-    printf("%0.4f", V[N-1]);
+    printf("%.4f", V[N-1]);
 }
 double euclidSum(double *x1, double*x2, int d)
 {
@@ -622,7 +622,7 @@ int main(int argc, char **argv)
 /*Navigate through goals*/
 void navigator(char* goal, double** mat, int N, int d, int K)
 {
-    int i;
+    int i, j;
     double **W, **D, **Lnorm, **temp, **V, *eigenValues, **U;
     const char* spk, *wam, *ddg, *lnorm, *jacobi;
 
@@ -635,12 +635,15 @@ void navigator(char* goal, double** mat, int N, int d, int K)
     if(!strcmp(goal,wam) ) {
         W = wamF(mat, N, d);
         printM(W, N);
+        freeMatrix(W, N);
     }
     else if(!strcmp(goal,ddg))
     {
         W = wamF(mat, N, d);
         D = ddgF(W, N);
         printM(D, N);
+        freeMatrix(W, N);
+        freeMatrix(D, N);
     }
 
     else if(!strcmp(goal,lnorm))
@@ -649,25 +652,22 @@ void navigator(char* goal, double** mat, int N, int d, int K)
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
         printM(Lnorm, N);
+        freeMatrix(W, N);
+        freeMatrix(D, N);
+        freeMatrix(Lnorm, N);
     }
 
     else if(!strcmp(goal,jacobi))
     {
         temp = JacobiF(mat, N);
-        U = getMatrix(N, N);
-        eigenValues = getVector(N);
-        copyRows(eigenValues, temp[0], N);
-        for(i = 0; i < N; i++)
+        for(i = 0; i < N+1; i++)
         {
-            copyRows(U[i],temp[i+1],N);
+            for(j = 0; j < N-1; j++)
+            {
+                printf("%.4f,", temp[i][j]);
+            }
+            printf("%.4f\n", temp[i][N-1]);
         }
-        printf("\n");
-        printV(eigenValues, N);
-        printf("\n");
-        printM(U, N);
-        freeMatrix(temp, N);
-        freeVector(eigenValues);
-        freeMatrix(U, N);
     }
     else if(!strcmp(goal, spk))
     {
