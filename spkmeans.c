@@ -256,8 +256,8 @@ double euclidSum(double *x1, double*x2, int d)
 double** wamF(double **vect, int N, int d)
 {
     int i, j;
-
     double** W = getMatrix(N, N);
+
     for(i = 0; i < N; i++)
     {
         for(j = 0; j < N; j++)
@@ -556,13 +556,12 @@ void formTfromU(double** U, int N, int K)
 
 int main(int argc, char **argv)
 {
-    int i, j, N, d, offset;
+    int i, j, N, d;
     double **X, num;
     FILE *ifp_datapoints;
     char c;
 
-    offset = 0;
-    d = 0;
+    d = 1;
     N = 0;
     ifp_datapoints = NULL;
     i = 0;
@@ -579,26 +578,24 @@ int main(int argc, char **argv)
         printf("An error has occurred");
         exit(1);
     }
-    /*get d*/
-    while((c = getc(ifp_datapoints)) != '\n')
-    {
-        if(c == ',')
-            d++;
-        offset++;
-    }
-    d += 1;
+   for (c = getc(ifp_datapoints); c != '\n'; c = getc(ifp_datapoints))
+   {
+    if(c == ',')
+        d = d+1;
+   }
     fseek(ifp_datapoints, 0, 0);
-    offset = 0;
-    /*get N*/
-    while(fscanf(ifp_datapoints, "%lf", &num) == 1)
-    {
-        c = getc(ifp_datapoints);
-        if(c == '\n')
-            N++;
-        offset++;
-    }
+   for (c = getc(ifp_datapoints); c != EOF; c = getc(ifp_datapoints))
+   {
+        if (c == '\n')
+        {
+            N = N + 1;
+        }
+   }
     fseek(ifp_datapoints,0 , 0);
     X = getMatrix(N, d);
+
+    i = 0;
+    j = 0;
     while(fscanf(ifp_datapoints, "%lf", &num) == 1)
     {
         X[i][j] = num;
