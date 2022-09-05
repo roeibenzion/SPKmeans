@@ -7,7 +7,7 @@
 void generateId(double** A, int N);
 double sumRow(double* row, int N, int squared);
 void matToThePow(double** M, int N, double exponent, int diag);
-double** matMul(double **A, double **B, int N);
+double** matMul(double **A, double **B, int N)
 double** matSum(double** A, double** B, int N, int sign);
 double ** getMatrix(int N, int d);
 void freeMatrix(double** m, int k);
@@ -16,7 +16,6 @@ void freeVector(double* m);
 int searchIndex(double* arr, int N, double val);
 void copyRows(double* dst, double* src, int N);
 void printM(double** M, int N);
-void printV(double* V, int N);
 double euclidSum(double *x1, double*x2, int d);
 double** wamF(double **vect, int N, int d);
 double** ddgF(double **W, int N);
@@ -113,7 +112,6 @@ double** matMul(double **A, double **B, int N)
     }
     return C;
 }
-
 double** matSum(double** A, double** B, int N, int sign)
 {
     int i,j;
@@ -228,16 +226,6 @@ void printM(double** M, int N)
         printf("%.4f\n", M[i][N-1]);
     }
 }
-
-void printV(double* V, int N)
-{
-    int i;
-    for(i = 0; i < N-1 ; i++)
-    {
-        printf("%.4f,", V[i]);
-    }
-    printf("%.4f", V[N-1]);
-}
 double euclidSum(double *x1, double*x2, int d)
 {
     int i;
@@ -249,14 +237,17 @@ double euclidSum(double *x1, double*x2, int d)
     }
     return sqrt(sum);
 }
-
-
 /*End utility functions*/
 /*Wam*/
 double** wamF(double **vect, int N, int d)
 {
     int i, j;
     double** W = getMatrix(N, N);
+    if(W == NULL)
+    {
+        printf("An error has occurred");
+        exit(1);
+    }
 
     for(i = 0; i < N; i++)
     {
@@ -281,6 +272,10 @@ double** ddgF(double **W, int N)
     int i;
 
     double** D = getMatrix(N, N);
+    if(D == NULL)
+    {
+        printf("An error has occurred");
+    }
     for(i = 0; i < N; i++)
     {
         D[i][i] = sumRow(W[i], N, 0);
@@ -290,18 +285,28 @@ double** ddgF(double **W, int N)
 /*Lnorm*/
 double** lnormF(double** W, double **D, int N)
 {
-    double **I, **L, **C;
+    double **I, **L, **C, **temp;
     int i;
     I = getMatrix(N,N);
-    C = getMatrix(N,N);
+    if(I == NULL)
+    {
+        printf("An error has occurred");
+        exit(1);
+    }
     for(i = 0; i < N; i++)
     {
         I[i][i] = 1;
     }
     matToThePow(D, N, -0.5, 1);
-    C = matMul(D, W, N);
-    C = matMul(C, D, N);
+    temp = matMul(D, W, N);
+    C = matMul(temp, D, N);
+    
     L = matSum(I, C, N, -1);
+    freeMatrix(temp, N);
+    freeMatrix(I, N);
+    freeMatrix(C, N);
+    freeMatrix(W, N);
+    freeMatrix(D, N);
     return L;
 }
 
@@ -325,6 +330,8 @@ double** getJacobiMatrix(double **V, double**A, int N)
     {
         copyRows(U[i], V[i-1], N);
     }
+    freeMatrix(V, N);
+    freeMatrix(A, N);
     return U;
 }
 
@@ -409,7 +416,7 @@ double** JacobiF(double** A, int N)
 {
     int i,j, iMax, jMax, countIter;
     double theta, t, c, s, maxVal, offSquareA;
-    double ** P, **V;
+    double ** P, **V, **temp;
 
     V = getMatrix(N, N);
     P = getMatrix(N,N);
@@ -449,7 +456,13 @@ double** JacobiF(double** A, int N)
         P[iMax][jMax] = s;
         P[jMax][iMax] = -s;
 
-        V = matMul(V, P, N);
+
+        temp = matMul(V, P, N);
+        for(i = 0; i < N; i++)
+        {
+            copyRows(V[i], temp[i], N);
+        }
+        freeMatrix(temp, N);
         offSquareA = offSquare(A, N);
         A = getATag(A, N, c, s, iMax, jMax);
         if(checkConversion(A, offSquareA, N))
@@ -510,8 +523,6 @@ void sortMatrixColumns(double** V, int N, double* A)
         }
         /*copy the col of the ith largest value to the ith location*/
         copyCol(newV, V, N, i, col);
-        printM(newV, N);
-        printf("\n");
     }
 
     for(i = 0; i < N; i++)
@@ -536,6 +547,7 @@ double** obtainLargestK(double **V, int N, int K)
             U[i][j] = V[i][j];
         }
     }
+    freeMatrix(V, N);
     return U;
 }
 /*Forming T from matrix U*/
@@ -614,6 +626,7 @@ int main(int argc, char **argv)
         exit(1);
     }
     navigator(argv[1], X, N, d, -1);
+    freeMatrix(X, N);
     return 0;
 }
 /*Navigate through goals*/
@@ -649,8 +662,6 @@ void navigator(char* goal, double** mat, int N, int d, int K)
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
         printM(Lnorm, N);
-        freeMatrix(W, N);
-        freeMatrix(D, N);
         freeMatrix(Lnorm, N);
     }
 
@@ -665,6 +676,7 @@ void navigator(char* goal, double** mat, int N, int d, int K)
             }
             printf("%.4f\n", temp[i][N-1]);
         }
+        freeMatrix(temp, N+1);
     }
     else if(!strcmp(goal, spk))
     {
@@ -685,6 +697,7 @@ void navigator(char* goal, double** mat, int N, int d, int K)
             K = eigenGap(eigenValues, N);
         }
         U = obtainLargestK(V, N, K);
+        printM(U, N);
         formTfromU(U, N, K);
         freeMatrix(V, N);
         freeVector(eigenValues);
