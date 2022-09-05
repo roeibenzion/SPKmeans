@@ -6,12 +6,10 @@ double** matSum(double** A, double** B, int N, int sign);
 double ** getMatrix(int N, int d);
 void freeMatrix(double** m, int k);
 double * getVector(int N);
-void freeVector(double* m, int k);
+void freeVector(double* m);
 int searchIndex(double* arr, int N, double val);
 void copyRows(double* dst, double* src, int N);
-void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex);
 void printM(double** M, int N);
-void printV(double* V, int N);
 double euclidSum(double *x1, double*x2, int d);
 double** wamF(double **vect, int N, int d);
 double** ddgF(double **W, int N);
@@ -28,3 +26,4 @@ double** obtainLargestK(double **V, int N, int K);
 void formTfromU(double** U, int N, int K);
 int main(int argc, char **argv);
 void navigator(char* goal, double** mat, int N, int d, int K);
+
