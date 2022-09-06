@@ -31,7 +31,7 @@ void sortMatrixColumns(double** V, int N, double* A);
 double** obtainLargestK(double **V, int N, int K);
 void formTfromU(double** U, int N, int K);
 int main(int argc, char **argv);
-void navigator(char* goal, double** mat, int N, int d, int K);
+void navigator(char* goal, double** mat, int N, int d);
 
 
 /*Utility functions*/
@@ -625,18 +625,16 @@ int main(int argc, char **argv)
         printf("An Error Has Occurred");
         exit(1);
     }
-    navigator(argv[1], X, N, d, -1);
+    navigator(argv[1], X, N, d);
     freeMatrix(X, N);
     return 0;
 }
 /*Navigate through goals*/
-void navigator(char* goal, double** mat, int N, int d, int K)
+void navigator(char* goal, double** mat, int N, int d)
 {
     int i, j;
-    double **W, **D, **Lnorm, **temp, **V, *eigenValues, **U;
-    const char* spk, *wam, *ddg, *lnorm, *jacobi;
-
-    spk = "spk";
+    double **W, **D, **Lnorm, **temp;
+    const char *wam, *ddg, *lnorm, *jacobi;
     wam = "wam";
     ddg = "ddg";
     lnorm = "lnorm";
@@ -677,31 +675,6 @@ void navigator(char* goal, double** mat, int N, int d, int K)
             printf("%.4f\n", temp[i][N-1]);
         }
         freeMatrix(temp, N+1);
-    }
-    else if(!strcmp(goal, spk))
-    {
-        W = wamF(mat, N, d);
-        D = ddgF(W, N);
-        Lnorm = lnormF(W, D, N);
-        temp = JacobiF(Lnorm, N);
-        eigenValues = getVector(N);
-        copyRows(eigenValues, temp[0], N);
-        V = getMatrix(N, N);
-        for(i = 0; i < N; i++)
-        {
-            copyRows(V[i], temp[i+1], N);
-        }
-        sortMatrixColumns(V, N, eigenValues);
-        if(K < 1)
-        {
-            K = eigenGap(eigenValues, N);
-        }
-        U = obtainLargestK(V, N, K);
-        printM(U, N);
-        formTfromU(U, N, K);
-        freeMatrix(V, N);
-        freeVector(eigenValues);
-        /*return to python and connect to KMEANS from HW2.*/
     }
     else
     {
