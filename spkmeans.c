@@ -534,7 +534,7 @@ void sortMatrixColumns(double** V, int N, double* A)
 /*Generates U, assume V is sorted in decreasing order by eigenValues*/
 double** obtainLargestK(double **V, int N, int K)
 {
-     int i, j;
+     int i;
     double** U;
 
     U = getMatrix(N, K);
