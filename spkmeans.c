@@ -463,6 +463,7 @@ double** JacobiF(double** A, int N)
     freeMatrix(P, N);
     return getJacobiMatrix(V,A,N);
 }
+/*End of Jacobi*/
 /*Full spk related functions*/
 /*EigenGap huristic*/
 int eigenGap(double* eigenValues, int N)
@@ -562,7 +563,6 @@ void formTfromU(double** U, int N, int K)
         }
     }
 }
-/*End of Jacobi*/
 int main(int argc, char **argv)
 {
     int i, j, N, d;
