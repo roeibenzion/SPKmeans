@@ -173,16 +173,6 @@ void freeVector(double* m) {
     free(m);
 }
 
-int compare( const void* a, const void* b)
-{
-    double double_a, double_b;
-    double_a = *((double*)a);
-    double_b = *((double*)b);
-    if ( double_a == double_b ) return 0;
-    else if ( double_a < double_b ) return 1;
-    else return -1;
-}
-
 int searchIndex(double* arr, int N, double val)
 {
     int i;
@@ -473,34 +463,39 @@ double** JacobiF(double** A, int N)
     freeMatrix(P, N);
     return getJacobiMatrix(V,A,N);
 }
-
-/*End of Jacobi*/
+/*Full spk related functions*/
 /*EigenGap huristic*/
 int eigenGap(double* eigenValues, int N)
 {
     double deltaI, temp;
-    int i, iter, maxIndex;
+    int i, iter;
 
     iter = N/2;
-    if(iter == 1)
+    if(N == 1)
     {
-        return 1;
+        printf("An error has occured");
+        exit(1);
     }
-    i = 1;
-    deltaI = fabs(eigenValues[i] - eigenValues[i+1]);
-    maxIndex = 1;
+    deltaI = fabs(eigenValues[1] - eigenValues[2]);
     for(i = 2; i < iter; i++)
     {
         temp = fabs(eigenValues[i] - eigenValues[i+1]);
         if(deltaI < temp)
         {
-            maxIndex = i;
             deltaI = temp;
         }
     }
-    return maxIndex;
+    return deltaI;
 }
-/*Functions for stages between Jacobi and Kmeans in full SPK*/
+int compare( const void* a, const void* b)
+{
+    double double_a, double_b;
+    double_a = *((double*)a);
+    double_b = *((double*)b);
+    if ( double_a == double_b ) return 0;
+    else if ( double_a < double_b ) return 1;
+    else return -1;
+}
 void sortMatrixColumns(double** V, int N, double* A)
 {
     int i, col;
@@ -540,9 +535,9 @@ double** obtainLargestK(double **V, int N, int K)
     double** U;
 
     U = getMatrix(N, K);
-    for(i = 0; i < K; i++)
+    for(i = 0; i < N; i++)
     {
-        for(j = 0; j < N; j++)
+        for(j = 0; j < K; j++)
         {
             U[i][j] = V[i][j];
         }
@@ -559,13 +554,16 @@ void formTfromU(double** U, int N, int K)
     for(i = 0; i < N; i++)
     {
         sum = sqrt(sumRow(U[i], K, 1));
-        for(j = 0; j < K; j++)
+        if(sum != 0.0)
         {
-            U[i][j] = U[i][j] / sum;
+            for(j = 0; j < K; j++)
+            {
+                U[i][j] = U[i][j] / sum;
+            }
         }
     }
 }
-
+/*End of Jacobi*/
 int main(int argc, char **argv)
 {
     int i, j, N, d;
