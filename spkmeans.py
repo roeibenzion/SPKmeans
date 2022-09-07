@@ -1,66 +1,113 @@
-import imp
 import math
 import sys
 import numpy as np
 import pandas as pd
+import myspkmeans as spk
 
-def wan(X: np.array, N: int, d: int) -> np.array:
-    return
-    #send to C
+###OLD KMEANS HW2###
+def getMinDl(xl: np.ndarray, centeroids: np.ndarray, i:int) -> int:
+    min_d = np.sum(np.power((xl-centeroids[0]),2)) 
+    for y in centeroids:
+        min_d = min((min_d, np.sum(np.power((xl-y),2))))
+        
+    return min_d
 
-def ddg(X: np.array, N: int, d: int) -> np.array:
-    return 
-    #send to C
-def Lnorm(X: np.array, N: int, d: int) -> np.array:
-    return 
-    #send to C
-def Jacobi(M: np.array, N: int) -> np.array:
-    #gets a matrix
-    return
-    #send to C
-def SPK(X: np.array, N: int, d: int):
-    #send to C
-    #send the returned value to Kmeans
-    return
+def getProb(D: list) -> np.ndarray:
+    P = np.array([])
+    s = sum(D)
+    for l in range(0,len(D)):
+        P = np.append(P, (D[l]/s))
+    return P
 
+def kMeanspp(df:np.ndarray, indexes:np.ndarray, N: int, k: int, d: int, max_iter: int): 
+    centeroids_indexes = []
+    np.random.seed(0)
+
+    centeroids_indexes.append(np.random.choice(a = np.arange(N), size = 1))
+    a = centeroids_indexes[0][0]
+    centeroids = np.array(df[a])
+    for i in range(1,k):
+        D = []
+        for l in range (0,N):
+            D.append(getMinDl(df[l], centeroids, i))
+        P = getProb(D)
+        centeroids_indexes.append(np.random.choice(a = np.arange(N) ,size = 1, p = P))
+        centeroids = np.append(centeroids, df[centeroids_indexes[i]], axis=0)
+    c = [[0 for x in range(d)] for y in range(k)]
+    for row in range(len(centeroids)):
+        for col in range(len(centeroids[row])):
+            c[row][col] = centeroids[row][col]
+
+    datapoints = [[0 for x in range(d)] for y in range(N)]
+    for row in range(len(df)):
+        for col in range(len(df[row])):
+            datapoints[row][col] = df[row][col]
+    for x in range(len(centeroids_indexes)):
+        if(x < len(centeroids_indexes)-1):
+                print(indexes[centeroids_indexes[x][0]] ,end=',')
+        else:
+                print(indexes[centeroids_indexes[x][0]])
+        centeroids_indexes[x] = centeroids_indexes[x][0]
+    centeroids = spk.fit(datapoints,c, centeroids_indexes,"kmeans",N,d,k)
+    arr = np.array(centeroids)
+    np.reshape(arr, (k,d))
+    for x in range(len(arr)):
+        for y in range(len(arr[x])):
+            if(y < len(arr[x])-1):
+                print('%.4f' % arr[x][y] ,end=',')
+            else:
+                print('%.4f' % arr[x][y])
+    print("here")
+
+###PRINT###
+def print_matrix(arr):
+      for x in range(len(arr)):
+        for y in range(len(arr[x])):
+            if(y < len(arr[x])-1):
+                print('%.4f' % arr[x][y] ,end=',')
+            else:
+                print('%.4f' % arr[x][y])
+
+
+###NEW###
 k, goal, file = (int(0), '', '')
 input = sys.argv
 
-if(len(sys.argv) != 3):
+k = int(input[1])
+goal = str(input[2])
+file = str(input[3])
+
+if(len(sys.argv) != 4):
    print("invalid input!")
    exit(1)
 
-df = pd.read_csv(file, header=None)
-df = df.to_numpy()
-N = len(df)
-d = len(df[1])
-
-if(k >= N):
-    print("invalid input!")
+try:
+    df = pd.read_csv(file, header=None)
+    N = len(df)
+    d = len(df.columns)
+    df = df.to_numpy()
+    print(d)
+    print(df[N-1][d-1])
+    if(k >= N or k < 0 or goal not in ["spk", "wam", "ddg", "lnorm", "jacobi"]):
+        print("invalid input!")
+        exit(1)
+    indexes = np.copy(df[0])
+    indexes = indexes.astype(int)
+    c = [[0 for x in range(d)] for y in range(N)]
+    for row in range(N):
+        for col in range(d):
+            c[row][col] = df[row][col]
+    if(goal == "spk"):
+        T_matrix = spk.fit(c, None, None, goal,N, d, k)
+        kMeanspp(T_matrix, indexes, N, k, k, 300)
+    else:
+        matrix = spk.fit(c, None, None, goal,N, d, k)
+        print_matrix(matrix)
+    
+except:
+    print("An error has occured")
     exit(1)
-# if(k == 0) - notify C
-#notify C what's the goal 
-k = input[1]
-goal = input[2]
-file = input[3]
-
-df = pd.read_csv(file, header=None)
-df = df.to_numpy()
-N = len(df)
-d = len(df[1])
-if(k > N):
-    print("invalid input!")
-    exit(1)
-
-if(goal == "wan"):
-    W = wan(df, N, d)
-elif(goal == "ddg"):
-    D = ddg(df, N, d)
-elif(goal == "Lnorm"):
-    L = ddg(df, N, d)
-elif(goal == "Jacobi"):
-    V = Jacobi(df, N)
-elif(goal == "SPK"):
-    SPK(df, N, d)
 
 
+
+    

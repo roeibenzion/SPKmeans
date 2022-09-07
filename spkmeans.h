@@ -1,11 +1,14 @@
+#ifndef SPKMEANS_H_
+#define SPKMEANS_H_
+
 void generateId(double** A, int N);
 double sumRow(double* row, int N, int squared);
 void matToThePow(double** M, int N, double exponent, int diag);
 double** matMul(double **A, double **B, int N);
 double** matSum(double** A, double** B, int N, int sign);
-double ** getMatrix(int N, int d);
+double** getMatrix(int N, int d);
+double* getVector(int N);
 void freeMatrix(double** m, int k);
-double * getVector(int N);
 void freeVector(double* m);
 int searchIndex(double* arr, int N, double val);
 void copyRows(double* dst, double* src, int N);
@@ -25,5 +28,7 @@ void sortMatrixColumns(double** V, int N, double* A);
 double** obtainLargestK(double **V, int N, int K);
 void formTfromU(double** U, int N, int K);
 int main(int argc, char **argv);
-void navigator(char* goal, double** mat, int N, int d, int K);
+void navigator(char* goal, double** mat, int N, int d, double** ret, int K);
+void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex);
 
+#endif 

@@ -9,9 +9,9 @@ double sumRow(double* row, int N, int squared);
 void matToThePow(double** M, int N, double exponent, int diag);
 double** matMul(double **A, double **B, int N);
 double** matSum(double** A, double** B, int N, int sign);
-double ** getMatrix(int N, int d);
+double** getMatrix(int N, int d);
+double* getVector(int N);
 void freeMatrix(double** m, int k);
-double * getVector(int N);
 void freeVector(double* m);
 int searchIndex(double* arr, int N, double val);
 void copyRows(double* dst, double* src, int N);
@@ -31,11 +31,10 @@ void sortMatrixColumns(double** V, int N, double* A);
 double** obtainLargestK(double **V, int N, int K);
 void formTfromU(double** U, int N, int K);
 int main(int argc, char **argv);
-void navigator(char* goal, double** mat, int N, int d);
-
+void navigator(char* goal, double** mat, int N, int d, double** ret, int K);
+void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex);
 
 /*Utility functions*/
-
 void generateId(double** A, int N)
 {
     int i, j;
@@ -566,10 +565,12 @@ void formTfromU(double** U, int N, int K)
 int main(int argc, char **argv)
 {
     int i, j, N, d;
-    double **X, num;
+    double **X, num, **ret;
     FILE *ifp_datapoints;
     char c;
+    const char *jacobi;
 
+    jacobi = "jacobi";
     d = 1;
     N = 0;
     ifp_datapoints = NULL;
@@ -622,31 +623,63 @@ int main(int argc, char **argv)
         printf("An Error Has Occurred");
         exit(1);
     }
-    navigator(argv[1], X, N, d);
-    freeMatrix(X, N);
+    if(!strcmp(argv[1], jacobi))
+    {
+        ret = getMatrix(N+1, N);
+    }
+    else
+    {
+        ret = getMatrix(N, N);
+    }
+    navigator(argv[1], X, N, d, ret, 0);
+    if(!strcmp(argv[1], jacobi))
+    {
+        for(i = 0; i < N+1; i++)
+        {
+            for(j = 0; j < N-1; j++)
+            {
+                printf("%.4f,", ret[i][j]);
+            }
+            printf("%.4f\n", ret[i][N-1]);
+        }
+        freeMatrix(ret, N+1);
+    }
+    else
+    {
+        printM(ret, N);
+        freeMatrix(ret, N);
+    }
+    /*freeMatrix(X, N);*/
     return 0;
 }
 /*Navigate through goals*/
-void navigator(char* goal, double** mat, int N, int d)
+void navigator(char* goal, double** mat, int N, int d, double** ret, int K)
 {
-    int i, j;
-    double **W, **D, **Lnorm, **temp;
-    const char *wam, *ddg, *lnorm, *jacobi;
+    int i;
+    double **W, **D, **Lnorm, **temp, *eigenValues, **V, **U;
+    const char *wam, *ddg, *lnorm, *jacobi, *spk;
     wam = "wam";
     ddg = "ddg";
     lnorm = "lnorm";
     jacobi = "jacobi";
+    spk = "spk";
 
     if(!strcmp(goal,wam) ) {
         W = wamF(mat, N, d);
-        printM(W, N);
+        for(i = 0; i < N; i++)
+        {
+            copyRows(ret[i], W[i], N);
+        }
         freeMatrix(W, N);
     }
     else if(!strcmp(goal,ddg))
     {
         W = wamF(mat, N, d);
         D = ddgF(W, N);
-        printM(D, N);
+         for(i = 0; i < N; i++)
+        {
+            copyRows(ret[i], D[i], N);
+        }
         freeMatrix(W, N);
         freeMatrix(D, N);
     }
@@ -656,22 +689,51 @@ void navigator(char* goal, double** mat, int N, int d)
         W = wamF(mat, N, d);
         D = ddgF(W, N);
         Lnorm = lnormF(W, D, N);
-        printM(Lnorm, N);
+         for(i = 0; i < N; i++)
+        {
+            copyRows(ret[i], Lnorm[i], N);
+        }
         freeMatrix(Lnorm, N);
     }
 
     else if(!strcmp(goal,jacobi))
     {
         temp = JacobiF(mat, N);
-        for(i = 0; i < N+1; i++)
+         for(i = 0; i < N+1; i++)
         {
-            for(j = 0; j < N-1; j++)
-            {
-                printf("%.4f,", temp[i][j]);
-            }
-            printf("%.4f\n", temp[i][N-1]);
+            copyRows(ret[i], temp[i], N);
         }
         freeMatrix(temp, N+1);
+    }
+
+     else if(!strcmp(goal, spk))
+    {
+        W = wamF(mat, N, d);
+        D = ddgF(W, N);
+        Lnorm = lnormF(W, D, N);
+        temp = JacobiF(Lnorm, N);
+        eigenValues = getVector(N);
+        copyRows(eigenValues, temp[0], N);
+        V = getMatrix(N, N);
+        for(i = 0; i < N; i++)
+        {
+            copyRows(V[i], temp[i+1], N);
+        }
+        sortMatrixColumns(V, N, eigenValues);
+        if(K < 1)
+        {
+            K = eigenGap(eigenValues, N);
+        }
+        U = obtainLargestK(V, N, K);
+        formTfromU(U, N, K);
+        ret = getMatrix(N, K);
+        for(i = 0; i < N; i++)
+        {
+            copyRows(ret[i], U[i], K);
+        }
+        printM(ret, N);
+        freeMatrix(U, N);
+        freeVector(eigenValues);
     }
     else
     {
