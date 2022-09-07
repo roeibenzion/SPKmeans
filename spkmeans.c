@@ -642,12 +642,12 @@ int main(int argc, char **argv)
             }
             printf("%.4f\n", ret[i][N-1]);
         }
-        freeMatrix(ret, N+1);
+        /*freeMatrix(ret, N+1);*/
     }
     else
     {
         printM(ret, N);
-        freeMatrix(ret, N);
+        /*freeMatrix(ret, N);*/
     }
     /*freeMatrix(X, N);*/
     return 0;
