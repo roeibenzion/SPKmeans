@@ -467,7 +467,7 @@ double** JacobiF(double** A, int N)
 /*EigenGap huristic*/
 int eigenGap(double* eigenValues, int N)
 {
-    double deltaI, temp;
+   double deltaI, temp, maxIndex;
     int i, iter;
 
     iter = N/2;
@@ -476,16 +476,18 @@ int eigenGap(double* eigenValues, int N)
         printf("An error has occured");
         exit(1);
     }
-    deltaI = fabs(eigenValues[1] - eigenValues[2]);
-    for(i = 2; i < iter; i++)
+    maxIndex = 1;
+    deltaI = fabs(eigenValues[0] - eigenValues[1]);
+    for(i = 1; i < iter; i++)
     {
         temp = fabs(eigenValues[i] - eigenValues[i+1]);
         if(deltaI < temp)
         {
             deltaI = temp;
+            maxIndex = i;
         }
     }
-    return deltaI;
+    return maxIndex;
 }
 int compare( const void* a, const void* b)
 {
@@ -531,16 +533,13 @@ void sortMatrixColumns(double** V, int N, double* A)
 /*Generates U, assume V is sorted in decreasing order by eigenValues*/
 double** obtainLargestK(double **V, int N, int K)
 {
-    int i, j;
+     int i, j;
     double** U;
 
     U = getMatrix(N, K);
     for(i = 0; i < N; i++)
     {
-        for(j = 0; j < K; j++)
-        {
-            U[i][j] = V[i][j];
-        }
+        copyRows(U[i], V[i], K);
     }
     freeMatrix(V, N);
     return U;
