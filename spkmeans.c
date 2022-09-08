@@ -649,8 +649,8 @@ int main(int argc, char **argv)
     {
         printM(ret, N);
         freeMatrix(ret, N);
-        freeMatrix(X, N);
     }
+    freeMatrix(X, N);
     return 0;
 }
 /*Navigate through goals*/
