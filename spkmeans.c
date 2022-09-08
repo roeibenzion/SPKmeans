@@ -228,6 +228,7 @@ double euclidSum(double *x1, double*x2, int d)
 }
 /*End utility functions*/
 /*Wam*/
+
 double** wamF(double **vect, int N, int d)
 {
     int i, j;
@@ -610,14 +611,14 @@ int main(int argc, char **argv)
     {
         X[i][j] = num;
         c = getc(ifp_datapoints);
-        if(c == '\n')
+        if(c != ',')
         {
             i++;
             j = 0;
         }
         else
             j++;
-    }
+    }  
     if(fclose(ifp_datapoints) != 0)
     {
         printf("An Error Has Occurred");
