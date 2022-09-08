@@ -24,8 +24,7 @@ def kMeanspp(df:np.ndarray, indexes:np.ndarray, N: int, k: int, d: int, max_iter
     np.random.seed(0)
 
     centeroids_indexes.append(np.random.choice(a = np.arange(N), size = 1))
-    a = centeroids_indexes[0][0]
-    centeroids = np.array(df[a])
+    centeroids = np.array(df[centeroids_indexes[0]])
     for i in range(1,k):
         D = []
         for l in range (0,N):
@@ -34,14 +33,16 @@ def kMeanspp(df:np.ndarray, indexes:np.ndarray, N: int, k: int, d: int, max_iter
         centeroids_indexes.append(np.random.choice(a = np.arange(N) ,size = 1, p = P))
         centeroids = np.append(centeroids, df[centeroids_indexes[i]], axis=0)
     c = [[0 for x in range(d)] for y in range(k)]
+    centeroids = np.array(centeroids)
     for row in range(len(centeroids)):
         for col in range(len(centeroids[row])):
-            c[row][col] = centeroids[row][col]
+            c[row][col] = centeroids[row][col] ###
 
     datapoints = [[0 for x in range(d)] for y in range(N)]
     for row in range(len(df)):
         for col in range(len(df[row])):
             datapoints[row][col] = df[row][col]
+    
     for x in range(len(centeroids_indexes)):
         if(x < len(centeroids_indexes)-1):
                 print(indexes[centeroids_indexes[x][0]] ,end=',')
@@ -57,7 +58,6 @@ def kMeanspp(df:np.ndarray, indexes:np.ndarray, N: int, k: int, d: int, max_iter
                 print('%.4f' % arr[x][y] ,end=',')
             else:
                 print('%.4f' % arr[x][y])
-    print("here")
 
 ###PRINT###
 def print_matrix(arr):
@@ -67,7 +67,6 @@ def print_matrix(arr):
                 print('%.4f' % arr[x][y] ,end=',')
             else:
                 print('%.4f' % arr[x][y])
-
 
 ###NEW###
 k, goal, file = (int(0), '', '')
@@ -81,33 +80,32 @@ if(len(sys.argv) != 4):
    print("invalid input!")
    exit(1)
 
+
 try:
     df = pd.read_csv(file, header=None)
     N = len(df)
     d = len(df.columns)
     df = df.to_numpy()
-    print(d)
-    print(df[N-1][d-1])
     if(k >= N or k < 0 or goal not in ["spk", "wam", "ddg", "lnorm", "jacobi"]):
         print("invalid input!")
         exit(1)
-    indexes = np.copy(df[0])
-    indexes = indexes.astype(int)
+    indexes = list(range(0, N))
     c = [[0 for x in range(d)] for y in range(N)]
     for row in range(N):
         for col in range(d):
             c[row][col] = df[row][col]
     if(goal == "spk"):
         T_matrix = spk.fit(c, None, None, goal,N, d, k)
+        T_matrix = np.array(T_matrix)
+        k = np.atleast_2d(T_matrix).shape[1]
         kMeanspp(T_matrix, indexes, N, k, k, 300)
     else:
         matrix = spk.fit(c, None, None, goal,N, d, k)
         print_matrix(matrix)
     
 except:
-    print("An error has occured")
+    print("An error has occuredPy")
     exit(1)
-
 
 
     
