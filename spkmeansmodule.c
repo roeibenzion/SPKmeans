@@ -135,13 +135,14 @@ PyObject* opt(int K, double** dataPoints, double** centeroids, int max_iter, int
     return returnedCenteroids;
 }
 /*Fit function*/
+/*
 static PyObject* fit(PyObject* self, PyObject* args)
 {
     double ** datapoints, **centeroids, **ret;
     PyObject *goalP,* datapointsP, *centeroidsP, *centeroids_indexesP, *returnedMat, *temp;
     const char *kmeans, *jacobi;
     char* goal; 
-    int N, d, K;
+    int N, d, K, t;
     Py_ssize_t i; 
     Py_ssize_t j;
     Py_ssize_t p;
@@ -150,7 +151,6 @@ static PyObject* fit(PyObject* self, PyObject* args)
     jacobi = "jacobi";
     kmeans = "kmeans";
 
-    /*Make sure goalP is passed as python str*/
     if(!PyArg_ParseTuple(args, "OOOOiii:fit", &datapointsP, &centeroidsP,&centeroids_indexesP, &goalP, &N, &d, &K))
     {
         return NULL;
@@ -173,6 +173,7 @@ static PyObject* fit(PyObject* self, PyObject* args)
             } 
         }
     }
+    t = N+1;
     goal = strtok(PyBytes_AS_STRING(PyUnicode_AsEncodedString(PyObject_Repr(goalP), "utf-8", "~E~")), "'");
     if(!strcmp(goal, kmeans))
     {
@@ -199,9 +200,9 @@ static PyObject* fit(PyObject* self, PyObject* args)
     }
     else if(!strcmp(goal, jacobi))
     {
-        ret = getMatrix(N+1, N);
+        ret = getMatrix(t, N);
         navigator(goal,datapoints,N, d, ret, K);
-        returnedMat = PyList_New(N+1);
+        returnedMat = PyList_New(t);
         for(q = 0; q < N+1; q++)
         {
             temp = PyList_New(N);
@@ -211,8 +212,154 @@ static PyObject* fit(PyObject* self, PyObject* args)
             }
             PyList_SetItem(returnedMat, q, temp);
         }
+        //Problem with this free, datapoints, same as in C the matrix sent cant be freed
+        //freeMatrix(datapoints, N);
+        //freeMatrix(ret, N+1);
+    }
+    else
+    {
+         ret = getMatrix(N, N);
+       navigator(goal,datapoints,N, d, ret, K);
+       returnedMat = PyList_New(N);
+        for(q = 0; q < N; q++)
+        {
+            temp = PyList_New(N);
+            for(p = 0; p < N; p++)
+            {
+                PyList_SetItem(temp, p, PyFloat_FromDouble(ret[q][p]));
+            }
+            PyList_SetItem(returnedMat, q, temp);
+        }
         freeMatrix(datapoints, N);
-        freeMatrix(ret, N+1);
+        freeMatrix(ret,N);
+    }
+    return returnedMat;
+}
+*/
+
+PyObject * full_spk(double** mat, int N, int d, int K)
+{
+    Py_ssize_t p;
+    Py_ssize_t q;
+    int i;
+    double **W, **D, **Lnorm, **temp, *eigenValues, **V, **U;
+    PyObject* ret, *tempP;
+        W = wamF(mat, N, d);
+        D = ddgF(W, N);
+        Lnorm = lnormF(W, D, N);
+        temp = JacobiF(Lnorm, N);
+        eigenValues = getVector(N);
+        copyRows(eigenValues, temp[0], N);
+        V = getMatrix(N, N);
+        for(i = 0; i < N; i++)
+        {
+            copyRows(V[i], temp[i+1], N);
+        }
+        sortMatrixColumns(V, N, eigenValues);
+        if(K < 1)
+        {
+            K = eigenGap(eigenValues, N);
+        }
+        U = obtainLargestK(V, N, K);
+        formTfromU(U, N, K);
+
+        ret = PyList_New(N);
+        for(q = 0; q < N; q++)
+        {
+            tempP = PyList_New(K);
+            for(p = 0; p < K; p++)
+            {
+                PyList_SetItem(tempP, p, PyFloat_FromDouble(U[q][p]));
+            }
+            PyList_SetItem(ret, q, tempP);
+        }
+        freeMatrix(U, N);
+        freeVector(eigenValues);
+        return ret;
+}
+static PyObject* fit(PyObject* self, PyObject* args)
+{
+    double ** datapoints, **centeroids, **ret;
+    PyObject *goalP,* datapointsP, *centeroidsP, *centeroids_indexesP, *returnedMat, *temp;
+    const char *kmeans, *jacobi;
+    char* goal; 
+    int N, d, K, t;
+    Py_ssize_t i; 
+    Py_ssize_t j;
+    Py_ssize_t p;
+    Py_ssize_t q;
+    
+    jacobi = "jacobi";
+    kmeans = "kmeans";
+
+    if(!PyArg_ParseTuple(args, "OOOOiii:fit", &datapointsP, &centeroidsP,&centeroids_indexesP, &goalP, &N, &d, &K))
+    {
+        return NULL;
+    }
+
+    datapoints = getMatrix(N,d);
+    if (datapoints == NULL)
+    {
+        printf("An Error Has Occurred");
+        return Py_BuildValue("");
+    }
+    for (i = 0; i < N; i++)
+    {
+        for (j = 0; j < d; j++)
+        {
+            datapoints[i][j] = PyFloat_AS_DOUBLE(PyList_GetItem(PyList_GetItem(datapointsP, i),j));
+            if (PyErr_Occurred())
+            {
+                puts("An Error Has Occurred");
+            } 
+        }
+    }
+    t = N+1;
+    goal = strtok(PyBytes_AS_STRING(PyUnicode_AsEncodedString(PyObject_Repr(goalP), "utf-8", "~E~")), "'");
+    if(!strcmp(goal, kmeans))
+    {
+        centeroids = getMatrix(K, d);
+        if (centeroids == NULL)
+        {
+            printf("An error has occurred");
+            freeMatrix(centeroids ,K);
+            return Py_BuildValue("");
+        }
+        for (i = 0; i < K; i++)
+        {
+            p = PyLong_AS_LONG(PyList_GetItem(centeroids_indexesP, i));
+            for (j = 0; j < d; j++)
+            {
+                centeroids[i][j] = PyFloat_AS_DOUBLE(PyList_GetItem(PyList_GetItem(datapointsP, p),j));
+                if (PyErr_Occurred())
+                {
+                puts("An error has occurred");
+                } 
+            }
+        }
+        return opt(K, datapoints, centeroids, 300, N, d, 0);
+    }
+    else if(!strcmp(goal, jacobi))
+    {
+        ret = getMatrix(t, N);
+        navigator(goal,datapoints,N, d, ret, K);
+        returnedMat = PyList_New(t);
+        for(q = 0; q < N+1; q++)
+        {
+            temp = PyList_New(N);
+            for(p = 0; p < N; p++)
+            {
+                PyList_SetItem(temp, p, PyFloat_FromDouble(ret[q][p]));
+            }
+            PyList_SetItem(returnedMat, q, temp);
+        }
+        //Problem with this free, datapoints, same as in C the matrix sent cant be freed
+        //freeMatrix(datapoints, N);
+        //freeMatrix(ret, N+1);
+    }
+    else if(!strcmp(goal, "spk"))
+    {
+       return full_spk(datapoints, N, d, K);
     }
     else
     {
