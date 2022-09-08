@@ -256,6 +256,7 @@ PyObject * full_spk(double** mat, int N, int d, int K)
             copyRows(V[i], temp[i+1], N);
         }
         sortMatrixColumns(V, N, eigenValues);
+        qsort(eigenValues,N,sizeof(double),compare);
         if(K < 1)
         {
             K = eigenGap(eigenValues, N);
