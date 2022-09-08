@@ -256,13 +256,13 @@ PyObject * full_spk(double** mat, int N, int d, int K)
             copyRows(V[i], temp[i+1], N);
         }
         sortMatrixColumns(V, N, eigenValues);
+        qsort(eigenValues,N,sizeof(double),compare);
         if(K < 1)
         {
             K = eigenGap(eigenValues, N);
         }
         U = obtainLargestK(V, N, K);
         formTfromU(U, N, K);
-
         ret = PyList_New(N);
         for(q = 0; q < N; q++)
         {
