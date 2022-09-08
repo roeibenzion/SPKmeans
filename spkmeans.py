@@ -36,7 +36,7 @@ def kMeanspp(df:np.ndarray, indexes:np.ndarray, N: int, k: int, d: int, max_iter
     centeroids = np.array(centeroids)
     for row in range(len(centeroids)):
         for col in range(len(centeroids[row])):
-            c[row][col] = centeroids[row][col] ###
+            c[row][col] = centeroids[row][col] 
 
     datapoints = [[0 for x in range(d)] for y in range(N)]
     for row in range(len(df)):
@@ -86,6 +86,7 @@ try:
     N = len(df)
     d = len(df.columns)
     df = df.to_numpy()
+    df = df.astype(float)
     if(k >= N or k < 0 or goal not in ["spk", "wam", "ddg", "lnorm", "jacobi"]):
         print("invalid input!")
         exit(1)

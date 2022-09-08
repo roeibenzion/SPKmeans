@@ -28,7 +28,7 @@ void sortMatrixColumns(double** V, int N, double* A);
 double** obtainLargestK(double **V, int N, int K);
 void formTfromU(double** U, int N, int K);
 int main(int argc, char **argv);
-void navigator(char* goal, double** mat, int N, int d, double** ret, int K);
+void navigator(char* goal, double** mat, int N, int d, double** ret);
 void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex);
 int compare( const void* a, const void* b);
 
