@@ -468,8 +468,8 @@ double** JacobiF(double** A, int N)
 /*EigenGap huristic*/
 int eigenGap(double* eigenValues, int N)
 {
-   double deltaI, temp, maxIndex;
-    int i, iter;
+   double deltaI, temp;
+    int i, iter, maxIndex;
 
     iter = N/2;
     if(N == 1)
@@ -485,7 +485,7 @@ int eigenGap(double* eigenValues, int N)
         if(deltaI < temp)
         {
             deltaI = temp;
-            maxIndex = i;
+            maxIndex = i+1;
         }
     }
     return maxIndex;
@@ -732,7 +732,6 @@ void navigator(char* goal, double** mat, int N, int d, double** ret, int K)
         {
             copyRows(ret[i], U[i], K);
         }
-        printM(ret, N);
         freeMatrix(U, N);
         freeVector(eigenValues);
     }
