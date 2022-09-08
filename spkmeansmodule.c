@@ -263,7 +263,6 @@ PyObject * full_spk(double** mat, int N, int d, int K)
         }
         U = obtainLargestK(V, N, K);
         formTfromU(U, N, K);
-
         ret = PyList_New(N);
         for(q = 0; q < N; q++)
         {
