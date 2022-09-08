@@ -31,7 +31,7 @@ void sortMatrixColumns(double** V, int N, double* A);
 double** obtainLargestK(double **V, int N, int K);
 void formTfromU(double** U, int N, int K);
 int main(int argc, char **argv);
-void navigator(char* goal, double** mat, int N, int d, double** ret, int K);
+void navigator(char* goal, double** mat, int N, int d, double** ret);
 void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex);
 
 /*Utility functions*/
@@ -421,7 +421,7 @@ double** JacobiF(double** A, int N)
         countIter++;
         for(i = 0; i < N; i++)
         {
-            for(j = 0; j < N ; j++)
+            for(j = i+1; j < N ; j++)
             {
                 if(maxVal < fabs(A[i][j]) && i!=j)
                 {
@@ -632,7 +632,7 @@ int main(int argc, char **argv)
     {
         ret = getMatrix(N, N);
     }
-    navigator(argv[1], X, N, d, ret, 0);
+    navigator(argv[1], X, N, d, ret);
     if(!strcmp(argv[1], jacobi))
     {
         for(i = 0; i < N+1; i++)
@@ -643,27 +643,26 @@ int main(int argc, char **argv)
             }
             printf("%.4f\n", ret[i][N-1]);
         }
-        /*freeMatrix(ret, N+1);*/
+        freeMatrix(ret, N+1);
     }
     else
     {
         printM(ret, N);
-        /*freeMatrix(ret, N);*/
+        freeMatrix(ret, N);
     }
-    /*freeMatrix(X, N);*/
+    freeMatrix(X, N);
     return 0;
 }
 /*Navigate through goals*/
-void navigator(char* goal, double** mat, int N, int d, double** ret, int K)
+void navigator(char* goal, double** mat, int N, int d, double** ret)
 {
     int i;
-    double **W, **D, **Lnorm, **temp, *eigenValues, **V, **U;
-    const char *wam, *ddg, *lnorm, *jacobi, *spk;
+    double **W, **D, **Lnorm, **temp;
+    const char *wam, *ddg, *lnorm, *jacobi;
     wam = "wam";
     ddg = "ddg";
     lnorm = "lnorm";
     jacobi = "jacobi";
-    spk = "spk";
 
     if(!strcmp(goal,wam) ) {
         W = wamF(mat, N, d);
@@ -696,7 +695,6 @@ void navigator(char* goal, double** mat, int N, int d, double** ret, int K)
         }
         freeMatrix(Lnorm, N);
     }
-
     else if(!strcmp(goal,jacobi))
     {
         temp = JacobiF(mat, N);
@@ -705,35 +703,6 @@ void navigator(char* goal, double** mat, int N, int d, double** ret, int K)
             copyRows(ret[i], temp[i], N);
         }
         freeMatrix(temp, N+1);
-    }
-
-     else if(!strcmp(goal, spk))
-    {
-        W = wamF(mat, N, d);
-        D = ddgF(W, N);
-        Lnorm = lnormF(W, D, N);
-        temp = JacobiF(Lnorm, N);
-        eigenValues = getVector(N);
-        copyRows(eigenValues, temp[0], N);
-        V = getMatrix(N, N);
-        for(i = 0; i < N; i++)
-        {
-            copyRows(V[i], temp[i+1], N);
-        }
-        sortMatrixColumns(V, N, eigenValues);
-        if(K < 1)
-        {
-            K = eigenGap(eigenValues, N);
-        }
-        U = obtainLargestK(V, N, K);
-        formTfromU(U, N, K);
-        ret = getMatrix(N, K);
-        for(i = 0; i < N; i++)
-        {
-            copyRows(ret[i], U[i], K);
-        }
-        freeMatrix(U, N);
-        freeVector(eigenValues);
     }
     else
     {
