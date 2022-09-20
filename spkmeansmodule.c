@@ -4,7 +4,7 @@
 #include<string.h>
 #include "spkmeans.h"
 
-/*Kmeans*/
+/*Kmeans from HW2*/
 double calculate_dist(double* point1, double* point2, int d)
 {
     int i;
@@ -77,6 +77,7 @@ int find_min(double* dataPoint, double** centeroids, int K, int d)
     }
     return index_min;
 }
+/*Main kmeans algorithm (opt as in optimize)*/
 PyObject* opt(int K, double** dataPoints, double** centeroids, int max_iter, int N, int d, double epsilon)
 {
     Py_ssize_t q, p;
@@ -130,12 +131,14 @@ PyObject* opt(int K, double** dataPoints, double** centeroids, int max_iter, int
     }
     freeMatrix(centeroids, K);
     free(new_centeroid);
-    freeMatrix(dataPoints,K);
+    freeMatrix(dataPoints,N);
     free(cluster_sizes);
     return returnedCenteroids;
 }
 /*End Kmeans*/
-/*Full SPK*/
+
+/*Full SPK function.
+Going through all stages of the SPK algorithm as described in the instractions form*/
 PyObject * full_spk(double** mat, int N, int d, int K)
 {
     Py_ssize_t p;
@@ -155,9 +158,10 @@ PyObject * full_spk(double** mat, int N, int d, int K)
             copyRows(V[i], temp[i+1], N);
         }
         sortMatrixColumns(V, N, eigenValues);
-        qsort(eigenValues,N,sizeof(double),compare);
+        /*K == 0 implies activate eigenGap huristic*/
         if(K < 1)
         {
+            qsort(eigenValues,N,sizeof(double),compare);
             K = eigenGap(eigenValues, N);
         }
         U = obtainLargestK(V, N, K);
@@ -191,6 +195,7 @@ static PyObject* fit(PyObject* self, PyObject* args)
     jacobi = "jacobi";
     kmeans = "kmeans";
 
+    /*Get data from python*/
     if(!PyArg_ParseTuple(args, "OOOOiii:fit", &datapointsP, &centeroidsP,&centeroids_indexesP, &goalP, &N, &d, &K))
     {
         return NULL;
@@ -202,6 +207,8 @@ static PyObject* fit(PyObject* self, PyObject* args)
         printf("An Error Has Occurred");
         return Py_BuildValue("");
     }
+
+    /*Set the data in C format*/
     for (i = 0; i < N; i++)
     {
         for (j = 0; j < d; j++)
@@ -213,15 +220,18 @@ static PyObject* fit(PyObject* self, PyObject* args)
             } 
         }
     }
+    /*parameter for N+1 to prevent errors in allocating pyList*/
     t = N+1;
-    goal = strtok(PyBytes_AS_STRING(PyUnicode_AsEncodedString(PyObject_Repr(goalP), "utf-8", "~E~")), "'");
+    /*Parse goal (source: docs.python.org/3/c-api/index.html)*/
+    goal = strtok(PyBytes_AS_STRING(PyUnicode_AsEncodedString(PyObject_Repr(goalP), "utf-8", "E")), "'");
+    
+    /*Navigate through goals*/
     if(!strcmp(goal, kmeans))
     {
         centeroids = getMatrix(K, d);
         if (centeroids == NULL)
         {
-            printf("An error has occurred");
-            freeMatrix(centeroids ,K);
+            printf("An Error Has Occured");
             return Py_BuildValue("");
         }
         for (i = 0; i < K; i++)
@@ -232,7 +242,7 @@ static PyObject* fit(PyObject* self, PyObject* args)
                 centeroids[i][j] = PyFloat_AS_DOUBLE(PyList_GetItem(PyList_GetItem(datapointsP, p),j));
                 if (PyErr_Occurred())
                 {
-                puts("An error has occurred");
+                puts("An Error Has Occured");
                 } 
             }
         }
@@ -277,7 +287,7 @@ static PyObject* fit(PyObject* self, PyObject* args)
     }
     return returnedMat;
 }
-/*Cython API*/
+/*C-Python API*/
 static PyMethodDef capiMethods[] = {
     {"fit",
     (PyCFunction) fit,

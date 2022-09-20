@@ -32,6 +32,8 @@ def kMeanspp(df:np.ndarray, indexes:np.ndarray, N: int, k: int, d: int, max_iter
         P = getProb(D)
         centeroids_indexes.append(np.random.choice(a = np.arange(N) ,size = 1, p = P))
         centeroids = np.append(centeroids, df[centeroids_indexes[i]], axis=0)
+    
+    #copy the data to regular python list to pass to C
     c = [[0 for x in range(d)] for y in range(k)]
     centeroids = np.array(centeroids)
     for row in range(len(centeroids)):
@@ -43,12 +45,15 @@ def kMeanspp(df:np.ndarray, indexes:np.ndarray, N: int, k: int, d: int, max_iter
         for col in range(len(df[row])):
             datapoints[row][col] = df[row][col]
     
+    #print indexes chosen
     for x in range(len(centeroids_indexes)):
         if(x < len(centeroids_indexes)-1):
                 print(indexes[centeroids_indexes[x][0]] ,end=',')
         else:
                 print(indexes[centeroids_indexes[x][0]])
         centeroids_indexes[x] = centeroids_indexes[x][0]
+    
+    #run kmeans from HW2
     centeroids = spk.fit(datapoints,c, centeroids_indexes,"kmeans",N,d,k)
     arr = np.array(centeroids)
     np.reshape(arr, (k,d))
@@ -68,7 +73,7 @@ def print_matrix(arr):
             else:
                 print('%.4f' % arr[x][y])
 
-###NEW###
+###Get arguments###
 k, goal, file = (int(0), '', '')
 input = sys.argv
 
@@ -82,19 +87,27 @@ if(len(sys.argv) != 4):
 
 
 try:
+    #read data and get N and d
     df = pd.read_csv(file, header=None)
     N = len(df)
     d = len(df.columns)
     df = df.to_numpy()
     df = df.astype(float)
+
+    #check validity of data
     if(k >= N or k < 0 or goal not in ["spk", "wam", "ddg", "lnorm", "jacobi"]):
-        print("invalid input!")
+        print("Invalid Input!")
         exit(1)
+    
+    #set the possible indexes of kmeans++
     indexes = list(range(0, N))
+
+    #set the data in a regular python list to pass to C
     c = [[0 for x in range(d)] for y in range(N)]
     for row in range(N):
         for col in range(d):
             c[row][col] = df[row][col]
+    
     if(goal == "spk"):
         T_matrix = spk.fit(c, None, None, goal,N, d, k)
         T_matrix = np.array(T_matrix)
@@ -105,7 +118,7 @@ try:
         print_matrix(matrix)
     
 except:
-    print("An error has occuredPy")
+    print("An Error Has Occured")
     exit(1)
 
 

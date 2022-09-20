@@ -4,7 +4,6 @@
 void generateId(double** A, int N);
 double sumRow(double* row, int N, int squared);
 void matToThePow(double** M, int N, double exponent, int diag);
-double** matMul(double **A, double **B, int N);
 double** matSum(double** A, double** B, int N, int sign);
 double** getMatrix(int N, int d);
 double* getVector(int N);

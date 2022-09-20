@@ -7,7 +7,6 @@
 void generateId(double** A, int N);
 double sumRow(double* row, int N, int squared);
 void matToThePow(double** M, int N, double exponent, int diag);
-double** matMul(double **A, double **B, int N);
 double** matSum(double** A, double** B, int N, int sign);
 double** getMatrix(int N, int d);
 double* getVector(int N);
@@ -33,8 +32,10 @@ void formTfromU(double** U, int N, int K);
 int main(int argc, char **argv);
 void navigator(char* goal, double** mat, int N, int d, double** ret);
 void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex);
+int compare( const void* a, const void* b);
 
 /*Utility functions*/
+/*Get matrix A and turnd it to the identity matrix*/
 void generateId(double** A, int N)
 {
     int i, j;
@@ -49,6 +50,8 @@ void generateId(double** A, int N)
         }
     }
 }
+
+/*Sum an array. If squared = 1 then sum it's squeres*/
 double sumRow(double* row, int N, int squared)
 {
     int i;
@@ -70,7 +73,7 @@ double sumRow(double* row, int N, int squared)
     }
     return sum;
 }
-
+/*Take matrix M to the pow exponent. If M is a diagonal matrix then refers only to the diagonal*/
 void matToThePow(double** M, int N, double exponent, int diag)
 {
     int i, j;
@@ -93,24 +96,7 @@ void matToThePow(double** M, int N, double exponent, int diag)
     }
 }
 
-double** matMul(double **A, double **B, int N)
-{
-    int i,j,k;
-    double **C;
-    C = getMatrix(N,N);
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            C[i][j]=0;
-            for(k=0;k<N;k++)
-            {
-                C[i][j]+=A[i][k]*B[k][j];
-            }
-        }
-    }
-    return C;
-}
+/*Sums matrix A and B. if Sign = 1 regualr sum, else subtract.*/
 double** matSum(double** A, double** B, int N, int sign)
 {
     int i,j;
@@ -128,6 +114,7 @@ double** matSum(double** A, double** B, int N, int sign)
     }
     return C;
 }
+/*Generates an NXd matrix of doubles*/
 double ** getMatrix(int N, int d)
 {
     double **data;
@@ -150,7 +137,7 @@ double ** getMatrix(int N, int d)
     }
     return data;
 }
-
+/*Free a matrix with k rows*/
 void freeMatrix(double** m, int k) {
     int i;
     for (i=0; i<k; i++) {
@@ -158,7 +145,7 @@ void freeMatrix(double** m, int k) {
     }
     free(m);
 }
-
+/*Generated an N-dimentional vector*/
 double * getVector(int N)
 {
     double *data;
@@ -167,11 +154,11 @@ double * getVector(int N)
         return data;
     return data;
 }
-
+/*Free a vector*/
 void freeVector(double* m) {
     free(m);
 }
-
+/*Search the index of val in arr*/
 int searchIndex(double* arr, int N, double val)
 {
     int i;
@@ -184,7 +171,7 @@ int searchIndex(double* arr, int N, double val)
     }
     return -1;
 }
-
+/*Copy row src to row dst*/
 void copyRows(double* dst, double* src, int N)
 {
     int i;
@@ -203,6 +190,7 @@ void copyCol(double** dst, double** src, int N, int dstIndex, int srcIndex)
         dst[i][dstIndex] = src[i][srcIndex];
     }
 }
+/*Prints a matrix in the desired format*/
 void printM(double** M, int N)
 {
     int i, j;
@@ -215,6 +203,7 @@ void printM(double** M, int N)
         printf("%.4f\n", M[i][N-1]);
     }
 }
+/*Euclid sum of 2  vectors in d-dimention*/
 double euclidSum(double *x1, double*x2, int d)
 {
     int i;
@@ -227,8 +216,8 @@ double euclidSum(double *x1, double*x2, int d)
     return sqrt(sum);
 }
 /*End utility functions*/
-/*Wam*/
 
+/*Wam*/
 double** wamF(double **vect, int N, int d)
 {
     int i, j;
@@ -275,37 +264,38 @@ double** ddgF(double **W, int N)
 /*Lnorm*/
 double** lnormF(double** W, double **D, int N)
 {
-    double **I, **L, **C, **temp;
-    int i;
+    double **I, **L; 
+    int i, j;
     I = getMatrix(N,N);
     if(I == NULL)
     {
         printf("An error has occurred");
         exit(1);
     }
+    generateId(I, N);
+    matToThePow(D, N, -0.5, 1);
+   /*From the symmetry of D, we can switch the matMul D^-0.5 * W * D^-0.5 operations to something more efficient*/
     for(i = 0; i < N; i++)
     {
-        I[i][i] = 1;
+        for(j = 0; j < N; j++)
+        {
+            W[i][j] *= D[i][i];
+            W[i][j] *= D[j][j];
+        }
     }
-    matToThePow(D, N, -0.5, 1);
-    temp = matMul(D, W, N);
-    C = matMul(temp, D, N);
-    
-    L = matSum(I, C, N, -1);
-    freeMatrix(temp, N);
+
+    L = matSum(I, W, N, -1);
     freeMatrix(I, N);
-    freeMatrix(C, N);
     freeMatrix(W, N);
     freeMatrix(D, N);
     return L;
 }
 
-/*Jacobi
+/*Jacobi functions.
 Returns a (N+1)X(N) matrix, where the first row is the eigenValues and
 the rest is a (N)X(N) matrix of eigenVectors.
 */
-
-/*Union to (N+1)X(N) matrix*/
+/*Union the output of jacobiF to (N+1)X(N) matrix*/
 double** getJacobiMatrix(double **V, double**A, int N)
 {
     int i;
@@ -385,7 +375,7 @@ double offSquare(double **A, int N)
     }
     return sum;
 }
-
+/*Find the t parameter from theta to construct c and s*/
 double findT(double theta)
 {
     int sign;
@@ -402,11 +392,12 @@ double findT(double theta)
     t = sign / base;
     return t;
 }
+/*Jacobi algorithm*/
 double** JacobiF(double** A, int N)
 {
     int i,j, iMax, jMax, countIter;
     double theta, t, c, s, maxVal, offSquareA;
-    double ** P, **V, **temp;
+    double ** P, **V, temp1, temp2;
 
     V = getMatrix(N, N);
     P = getMatrix(N,N);
@@ -419,6 +410,7 @@ double** JacobiF(double** A, int N)
         iMax = 0;
         jMax = 0;
         countIter++;
+        /*Find pivot*/
         for(i = 0; i < N; i++)
         {
             for(j = i+1; j < N ; j++)
@@ -431,28 +423,33 @@ double** JacobiF(double** A, int N)
                 }
             }
         }
+        /*Couldn't find a non-zero pivot implies matrix is diagonal*/
         if(maxVal == 0.0)
         {
             break;
         }
+        /*Find c and s*/
         theta = (A[jMax][jMax] - A[iMax][iMax]) / (2*A[iMax][jMax]);
         t = findT(theta);
         c = 1/(sqrt(t*t + 1));
         s = t*c;
 
+        /*Generate P*/
         generateId(P, N);
         P[iMax][iMax] = c;
         P[jMax][jMax] = c;
         P[iMax][jMax] = s;
         P[jMax][iMax] = -s;
 
-
-        temp = matMul(V, P, N);
+        /*Update V. From the special structure of P we can switch the matMul operation with a closed formula*/
         for(i = 0; i < N; i++)
         {
-            copyRows(V[i], temp[i], N);
+            temp1 = V[i][iMax];
+            temp2 = V[i][jMax];
+            V[i][iMax] = c*temp1 - s*temp2;
+            V[i][jMax] = c*temp2 + s*temp1;
         }
-        freeMatrix(temp, N);
+        /*Check conversion*/
         offSquareA = offSquare(A, N);
         A = getATag(A, N, c, s, iMax, jMax);
         if(checkConversion(A, offSquareA, N))
@@ -461,9 +458,11 @@ double** JacobiF(double** A, int N)
         }
     }
     freeMatrix(P, N);
+    /*Constract (N+1)X(N) matrix from the diag of A and V*/
     return getJacobiMatrix(V,A,N);
 }
 /*End of Jacobi*/
+ 
 /*Full spk related functions*/
 /*EigenGap huristic*/
 int eigenGap(double* eigenValues, int N)
@@ -490,6 +489,7 @@ int eigenGap(double* eigenValues, int N)
     }
     return maxIndex;
 }
+/*Comparator function for qsort*/
 int compare( const void* a, const void* b)
 {
     double double_a, double_b;
@@ -499,6 +499,7 @@ int compare( const void* a, const void* b)
     else if ( double_a < double_b ) return 1;
     else return -1;
 }
+/*Sort matrix V's cols by corresponding eigenvalues in A*/
 void sortMatrixColumns(double** V, int N, double* A)
 {
     int i, col;
@@ -507,12 +508,14 @@ void sortMatrixColumns(double** V, int N, double* A)
     copy = getVector(N);
     newV = getMatrix(N, N);
 
+    /*Generate a sorted copy of the eigenValues vector*/
     copyRows(copy, A, N);
     qsort(copy,N,sizeof(double),compare);
 
+    /*Sort V cols using the sorted copy vector*/
     for(i = 0; i < N; i++)
     {
-        /*find ith largest eigenValue index in the original*/
+        /*find ith largest eigenValue col index in the original A vector*/
         col = searchIndex(A, N, copy[i]);
         if(col == -1)
         {
@@ -523,6 +526,7 @@ void sortMatrixColumns(double** V, int N, double* A)
         copyCol(newV, V, N, i, col);
     }
 
+    /*The desired sorted V is in newV matrix so copy value by value*/
     for(i = 0; i < N; i++)
     {
         copyRows(V[i], newV[i], N);
@@ -531,7 +535,7 @@ void sortMatrixColumns(double** V, int N, double* A)
     freeVector(copy);
 }
 
-/*Generates U, assume V is sorted in decreasing order by eigenValues*/
+/*Generate U, assume V is sorted in decreasing order by eigenValues*/
 double** obtainLargestK(double **V, int N, int K)
 {
      int i;
@@ -554,6 +558,7 @@ void formTfromU(double** U, int N, int K)
     for(i = 0; i < N; i++)
     {
         sum = sqrt(sumRow(U[i], K, 1));
+        /*sum == 0.0 implies row of 0's so we can do nothing*/
         if(sum != 0.0)
         {
             for(j = 0; j < K; j++)
@@ -563,6 +568,7 @@ void formTfromU(double** U, int N, int K)
         }
     }
 }
+/*main function*/
 int main(int argc, char **argv)
 {
     int i, j, N, d;
@@ -584,6 +590,7 @@ int main(int argc, char **argv)
         exit(1);
     }
     ifp_datapoints = fopen(argv[2], "r");
+    /*Read file. get d (dimention) and N (num of datapoints)*/
     if(ifp_datapoints == NULL)
     {
         printf("An error has occurred");
@@ -632,7 +639,10 @@ int main(int argc, char **argv)
     {
         ret = getMatrix(N, N);
     }
+
+    /*call navigator function*/
     navigator(argv[1], X, N, d, ret);
+
     if(!strcmp(argv[1], jacobi))
     {
         for(i = 0; i < N+1; i++)
@@ -649,10 +659,11 @@ int main(int argc, char **argv)
     {
         printM(ret, N);
         freeMatrix(ret, N);
+        freeMatrix(X, N);
     }
-    freeMatrix(X, N);
     return 0;
 }
+
 /*Navigate through goals*/
 void navigator(char* goal, double** mat, int N, int d, double** ret)
 {
